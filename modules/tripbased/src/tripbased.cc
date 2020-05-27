@@ -241,15 +241,12 @@ struct tripbased::impl {
   }
 
   msg_ptr route(msg_ptr const& msg) {
-    MOTIS_START_TIMING(total_timing);
     auto const req = motis_content(RoutingRequest, msg);
 
     auto const& sched = get_schedule();
     auto const query = build_tb_query(req, sched);
 
     auto res = route_dispatch(query, sched);
-
-    MOTIS_STOP_TIMING(total_timing);
 
     message_creator fbb;
     auto stats =
