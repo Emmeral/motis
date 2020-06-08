@@ -6,6 +6,8 @@
 
 #include "motis/module/module.h"
 
+#include "motis/csa/csa.h"
+
 namespace motis::routing {
 
 struct memory;
@@ -30,6 +32,11 @@ private:
 
   std::mutex mem_pool_mutex_;
   std::vector<std::unique_ptr<memory>> mem_pool_;
+
+  bool lower_bounds_with_csa_{false};
+
+  std::unique_ptr<csa::csa_timetable> csa_timetable_;
+
 };
 
 }  // namespace motis::routing

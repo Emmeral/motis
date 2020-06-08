@@ -41,6 +41,6 @@ struct csa : public motis::module::module {
 };
 
 std::vector<std::array<time, MAX_TRANSFERS + 1>> get_arrival_times(
-    csa_query const& csa_q);
+    csa_timetable const& csa_tt, csa_query const& csa_q);
 
 }  // namespace motis::csa

@@ -3,6 +3,7 @@
 #include "boost/date_time/gregorian/gregorian_types.hpp"
 #include "boost/date_time/posix_time/posix_time.hpp"
 #include "boost/program_options.hpp"
+#include <string>
 
 #include "utl/to_vec.h"
 
@@ -25,6 +26,8 @@
 #include "motis/routing/start_label_generators/ontrip_gen.h"
 #include "motis/routing/start_label_generators/pretrip_gen.h"
 
+#include "motis/csa/build_csa_timetable.h"
+
 // 64MB default start size
 constexpr auto LABEL_STORE_START_SIZE = 64 * 1024 * 1024;
 
@@ -33,14 +36,27 @@ using namespace motis::module;
 
 namespace motis::routing {
 
-routing::routing() : module("Routing", "routing") {}
+routing::routing() : module("Routing", "routing") {
+
+  param(lower_bounds_with_csa_, "lower_bounds_with_csa",
+        "Calculates lower bounds using the CSA algorithm to increase label "
+        "domination");
+}
 
 routing::~routing() = default;
 
 void routing::init(motis::module::registry& reg) {
+
+  LOG(motis::logging::info) << "Routing init";
+
   reg.register_op("/routing",
                   [this](msg_ptr const& msg) { return route(msg); });
   reg.register_op("/trip_to_connection", &routing::trip_to_connection);
+
+  if (lower_bounds_with_csa_) {
+    auto const& sched = get_sched();
+    csa_timetable_ = motis::csa::build_csa_timetable(sched, false, false);
+  }
 }
 
 msg_ptr routing::route(msg_ptr const& msg) {
@@ -52,6 +68,11 @@ msg_ptr routing::route(msg_ptr const& msg) {
 
   mem_retriever mem(mem_pool_mutex_, mem_pool_, LABEL_STORE_START_SIZE);
   query.mem_ = &mem.get();
+
+  if (lower_bounds_with_csa_) {
+    query.csa_lower_bounds = true;
+    query.csa_timetable = csa_timetable_.get();
+  }
 
   auto res = search_dispatch(query, req->start_type(), req->search_type(),
                              req->search_dir());

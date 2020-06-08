@@ -97,4 +97,12 @@ csa_query::csa_query(schedule const& sched,
   }
 }
 
+csa_query::csa_query(std::vector<station_id> start_metas,
+                     std::vector<station_id> dest_metas,
+                     interval search_interval, search_dir dir)
+    : meta_starts_{start_metas},
+      meta_dests_{dest_metas},
+      search_interval_{search_interval},
+      dir_{dir} {};
+
 }  // namespace motis::csa

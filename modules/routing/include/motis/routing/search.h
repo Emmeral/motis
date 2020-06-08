@@ -1,5 +1,6 @@
 #pragma once
 
+#include <motis/csa/build_csa_timetable.h>
 #include "utl/to_vec.h"
 
 #include "motis/hash_map.h"
@@ -27,6 +28,10 @@ struct search_query {
   bool use_dest_metas_{false};
   bool use_start_footpaths_{false};
   light_connection const* lcon_{nullptr};
+  // true if lower bounds should be calculated using csa
+  bool csa_lower_bounds{false};
+  // only set if csa_lower_bounds is true
+  motis::csa::csa_timetable const* csa_timetable{nullptr};
 };
 
 struct search_result {
@@ -51,6 +56,8 @@ struct search {
         travel_time_lb_graph_edges;
     mcd::hash_map<unsigned, std::vector<simple_edge>> transfers_lb_graph_edges;
     auto const route_offset = q.sched_->station_nodes_.size();
+
+    // construct the lower bounds graph for the additional edges
     for (auto const& e : q.query_edges_) {
       auto const from_node = (Dir == search_dir::FWD) ? e.from_ : e.to_;
       auto const to_node = (Dir == search_dir::FWD) ? e.to_ : e.from_;
@@ -85,6 +92,7 @@ struct search {
         break;
       }
     }
+    // TODO: What does this if statement do?
     if (q.to_ == q.sched_->station_nodes_.at(1).get()) {
       goal_ids.push_back(q.to_->id_);
       is_goal[q.to_->id_] = true;
@@ -99,10 +107,52 @@ struct search {
         goal_ids, travel_time_lb_graph_edges, transfers_lb_graph_edges);
 
     MOTIS_START_TIMING(travel_time_lb_timing);
+
+    // hier muss der csa aufgerufen werden
+
+    if (q.csa_lower_bounds) {
+
+      // TODO: further think about on- vs pretrip
+      interval search_interval{q.interval_begin_, q.interval_end_};
+      csa::csa_query initial_query(q.from_->id_, q.to_->id_, search_interval,
+                                   Dir);
+      auto const times =
+          motis::csa::get_arrival_times(*q.csa_timetable, initial_query);
+
+      // do I use the correct ID?
+      auto arrival_times = times[q.to_->id_];
+
+      search_dir notDir =
+          Dir == search_dir::FWD ? search_dir::BWD : search_dir::FWD;
+
+      // check if target is reachable and find the latest arrival time
+      bool valid{false};
+      time last_arrival{0};
+      for (auto t : arrival_times) {
+        if (t != INVALID_TIME && t > last_arrival) {
+          last_arrival = t;
+          valid = true;
+        }
+      }
+
+      // TODO return if not valid. Also what if the interval can be extended?
+
+      // signals ontrip station start because no search interval
+      interval backwards_interval{last_arrival, last_arrival};
+
+      csa::csa_query backwards_query(q.to_->id_, q.from_->id_,
+                                     backwards_interval, notDir);
+
+      auto const backwards_times =
+          motis::csa::get_arrival_times(*q.csa_timetable, backwards_query);
+    }
+
     lbs.travel_time_.run();
     MOTIS_STOP_TIMING(travel_time_lb_timing);
 
-    if (!lbs.travel_time_.is_reachable(lbs.travel_time_[q.from_])) {
+    if (!lbs.travel_time_.is_reachable(
+            lbs.travel_time_[q.from_])) {  // is this to early if start metas
+                                           // are used?
       return search_result(MOTIS_TIMING_MS(travel_time_lb_timing));
     }
 
@@ -118,18 +168,21 @@ struct search {
     auto const start_edge = create_start_edge(mutable_node);
 
     std::vector<edge> meta_edges;
-    if (q.from_->is_route_node() ||
+    if (q.from_->is_route_node() ||  // what does route node mean?
         q.from_ == q.sched_->station_nodes_.at(0).get()) {
-      if (!lbs.travel_time_.is_reachable(lbs.travel_time_[q.from_])) {
+      if (!lbs.travel_time_.is_reachable(
+              lbs.travel_time_[q.from_])) {  // condition already checked?
         return search_result(MOTIS_TIMING_MS(travel_time_lb_timing));
       }
     } else if (!q.use_start_metas_) {
-      if (!lbs.travel_time_.is_reachable(lbs.travel_time_[q.from_])) {
+      if (!lbs.travel_time_.is_reachable(
+              lbs.travel_time_[q.from_])) {  // same condition again?
         return search_result(MOTIS_TIMING_MS(travel_time_lb_timing));
       }
       meta_edges.push_back(start_edge);
     } else {
       auto const& meta_froms = q.sched_->stations_[q.from_->id_]->equivalent_;
+      // check equivalent stations for reachability
       if (q.use_start_metas_ &&
           std::all_of(begin(meta_froms), end(meta_froms),
                       [&lbs, &q](station const* s) {

@@ -12,6 +12,19 @@ namespace motis::csa {
 
 struct csa_query {
   csa_query(schedule const&, motis::routing::RoutingRequest const*);
+  /**
+   * Utility constructor for a point to point query
+   */
+  csa_query(station_id start, station_id dest, interval search_interval,
+            search_dir dir)
+      : csa_query(std::vector<station_id>({start}),
+                  std::vector<station_id>({dest}), search_interval, dir){}
+  /**
+   * Constructor which directly includes the vector of meta stations
+   */
+  csa_query(std::vector<station_id> start_metas,
+            std::vector<station_id> dest_metas, interval search_interval,
+            search_dir dir);
 
   bool is_ontrip() const { return search_interval_.end_ == INVALID_TIME; }
 
