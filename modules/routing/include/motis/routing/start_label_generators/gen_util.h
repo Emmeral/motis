@@ -7,7 +7,7 @@
 
 #include "motis/core/schedule/schedule.h"
 #include "motis/routing/error.h"
-#include "motis/routing/lower_bounds.h"
+#include "motis/routing/lower_bounds/lower_bounds.h"
 #include "motis/routing/mem_manager.h"
 
 namespace motis::routing {

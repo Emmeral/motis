@@ -1,0 +1,30 @@
+#pragma once
+
+#include <motis/routing/search.h>
+#include "motis/routing/lower_bounds/lower_bounds.h"
+
+namespace motis::routing {
+
+class lower_bounds_csa : public lower_bounds {
+
+public:
+  lower_bounds_csa(search_query const& routing_query, search_dir direction);
+  time_diff_t time_from_node(node const* n) override;
+  bool is_valid_time_diff(time_diff_t diff) override;
+  interchanges_t transfers_from_node(node const* n) override;
+  bool is_valid_transfer_amount(interchanges_t amount) override;
+
+  void calculate();
+
+private:
+  struct combined_bound {
+    time_diff_t time_diff_{};
+    interchanges_t transfer_amount{};
+  };
+
+  search_query const& routing_query_;
+  const search_dir direction_;
+  std::vector<combined_bound> bounds_;
+};
+
+}  // namespace motis::routing

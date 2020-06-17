@@ -29,6 +29,7 @@ struct statistics {
   uint64_t labels_equals_popped_{};
   uint64_t travel_time_lb_{};
   uint64_t transfers_lb_{};
+  uint64_t total_lb{};
   uint64_t price_l_b_{};
   uint64_t total_calculation_time_{};
   uint64_t pareto_dijkstra_{};

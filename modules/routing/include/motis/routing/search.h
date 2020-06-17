@@ -1,13 +1,15 @@
 #pragma once
 
-#include <motis/csa/build_csa_timetable.h>
+#include "motis/csa/build_csa_timetable.h"
+#include "motis/routing/lower_bounds/lower_bounds_const_graph.h"
+#include "motis/routing/lower_bounds/lower_bounds_csa.h"
 #include "utl/to_vec.h"
 
 #include "motis/hash_map.h"
 
 #include "motis/core/common/timing.h"
 #include "motis/core/schedule/schedule.h"
-#include "motis/routing/lower_bounds.h"
+#include "motis/routing/lower_bounds/lower_bounds.h"
 #include "motis/routing/output/labels_to_journey.h"
 #include "motis/routing/pareto_dijkstra.h"
 
@@ -98,67 +100,55 @@ struct search {
       is_goal[q.to_->id_] = true;
     }
 
-    lower_bounds lbs(
-        *q.sched_,  //
-        Dir == search_dir::FWD ? q.sched_->travel_time_lower_bounds_fwd_
-                               : q.sched_->travel_time_lower_bounds_bwd_,
-        Dir == search_dir::FWD ? q.sched_->transfers_lower_bounds_fwd_
-                               : q.sched_->transfers_lower_bounds_bwd_,
-        goal_ids, travel_time_lb_graph_edges, transfers_lb_graph_edges);
-
-    MOTIS_START_TIMING(travel_time_lb_timing);
-
     // hier muss der csa aufgerufen werden
 
+    std::unique_ptr<lower_bounds> lbs;
+
+    // TODO: make this better and introduce total lb stats
+    uint64_t lb_transfer_timing;
+    uint64_t lb_travel_time_timing;
+    uint64_t lb_total_timing;
+
     if (q.csa_lower_bounds) {
+      auto lbs_csa = std::make_unique<lower_bounds_csa>(q, Dir);
 
-      // TODO: further think about on- vs pretrip
-      interval search_interval{q.interval_begin_, q.interval_end_};
-      csa::csa_query initial_query(q.from_->id_, q.to_->id_, search_interval,
-                                   Dir);
-      auto const times =
-          motis::csa::get_arrival_times(*q.csa_timetable, initial_query);
+      MOTIS_START_TIMING(total_lb_timing);
+      lbs_csa->calculate();
+      MOTIS_STOP_TIMING(total_lb_timing);
 
-      // do I use the correct ID?
-      auto arrival_times = times[q.to_->id_];
+      lb_total_timing = MOTIS_TIMING_MS(total_lb_timing);
 
-      search_dir notDir =
-          Dir == search_dir::FWD ? search_dir::BWD : search_dir::FWD;
+      lbs = std::move(lbs_csa);
+    } else {
 
-      // check if target is reachable and find the latest arrival time
-      bool valid{false};
-      time last_arrival{0};
-      for (auto t : arrival_times) {
-        if (t != INVALID_TIME && t > last_arrival) {
-          last_arrival = t;
-          valid = true;
-        }
+      auto lbs_cg = std::make_unique<lower_bounds_const_graph>(
+          *q.sched_,  //
+          Dir == search_dir::FWD ? q.sched_->travel_time_lower_bounds_fwd_
+                                 : q.sched_->travel_time_lower_bounds_bwd_,
+          Dir == search_dir::FWD ? q.sched_->transfers_lower_bounds_fwd_
+                                 : q.sched_->transfers_lower_bounds_bwd_,
+          goal_ids, travel_time_lb_graph_edges, transfers_lb_graph_edges);
+
+      MOTIS_START_TIMING(travel_time_lb_timing);
+      lbs_cg->calculate_timing();
+      MOTIS_STOP_TIMING(travel_time_lb_timing);
+
+      lb_travel_time_timing = MOTIS_TIMING_MS(travel_time_lb_timing);
+
+      // questionable if condition might be removed
+      if (!lbs_cg->is_valid_time_diff(lbs_cg->time_from_node(q.from_))) {
+        return search_result(lb_travel_time_timing);
       }
 
-      // TODO return if not valid. Also what if the interval can be extended?
+      MOTIS_START_TIMING(transfers_lb_timing);
+      lbs_cg->calculate_transfers();
+      MOTIS_STOP_TIMING(transfers_lb_timing);
 
-      // signals ontrip station start because no search interval
-      interval backwards_interval{last_arrival, last_arrival};
+      lb_transfer_timing = MOTIS_TIMING_MS(transfers_lb_timing);
+      lb_total_timing = lb_travel_time_timing + lb_transfer_timing;
 
-      csa::csa_query backwards_query(q.to_->id_, q.from_->id_,
-                                     backwards_interval, notDir);
-
-      auto const backwards_times =
-          motis::csa::get_arrival_times(*q.csa_timetable, backwards_query);
+      lbs = std::move(lbs_cg);
     }
-
-    lbs.travel_time_.run();
-    MOTIS_STOP_TIMING(travel_time_lb_timing);
-
-    if (!lbs.travel_time_.is_reachable(
-            lbs.travel_time_[q.from_])) {  // is this to early if start metas
-                                           // are used?
-      return search_result(MOTIS_TIMING_MS(travel_time_lb_timing));
-    }
-
-    MOTIS_START_TIMING(transfers_lb_timing);
-    lbs.transfers_.run();
-    MOTIS_STOP_TIMING(transfers_lb_timing);
 
     auto const create_start_edge = [&](node* to) {
       return Dir == search_dir::FWD ? make_foot_edge(nullptr, to)
@@ -170,14 +160,14 @@ struct search {
     std::vector<edge> meta_edges;
     if (q.from_->is_route_node() ||  // what does route node mean?
         q.from_ == q.sched_->station_nodes_.at(0).get()) {
-      if (!lbs.travel_time_.is_reachable(
-              lbs.travel_time_[q.from_])) {  // condition already checked?
-        return search_result(MOTIS_TIMING_MS(travel_time_lb_timing));
+      if (!lbs->is_valid_time_diff(
+              lbs->time_from_node(q.from_))) {  // condition already checked?
+        return search_result(lb_travel_time_timing);
       }
     } else if (!q.use_start_metas_) {
-      if (!lbs.travel_time_.is_reachable(
-              lbs.travel_time_[q.from_])) {  // same condition again?
-        return search_result(MOTIS_TIMING_MS(travel_time_lb_timing));
+      if (!lbs->is_valid_time_diff(
+              lbs->time_from_node(q.from_))) {  // same condition again?
+        return search_result(lb_travel_time_timing);
       }
       meta_edges.push_back(start_edge);
     } else {
@@ -186,11 +176,10 @@ struct search {
       if (q.use_start_metas_ &&
           std::all_of(begin(meta_froms), end(meta_froms),
                       [&lbs, &q](station const* s) {
-                        return !lbs.travel_time_.is_reachable(
-                            lbs.travel_time_[q.sched_->station_nodes_[s->index_]
-                                                 .get()]);
+                        return !lbs->is_valid_time_diff(lbs->time_from_node(
+                            q.sched_->station_nodes_[s->index_].get()));
                       })) {
-        return search_result(MOTIS_TIMING_MS(travel_time_lb_timing));
+        return search_result(lb_travel_time_timing);
       }
       for (auto const& meta_from : meta_froms) {
         auto meta_edge = create_start_edge(
@@ -281,8 +270,8 @@ struct search {
     MOTIS_STOP_TIMING(pareto_dijkstra_timing);
 
     auto stats = pd.get_statistics();
-    stats.travel_time_lb_ = MOTIS_TIMING_MS(travel_time_lb_timing);
-    stats.transfers_lb_ = MOTIS_TIMING_MS(transfers_lb_timing);
+    stats.travel_time_lb_ = lb_travel_time_timing;
+    stats.transfers_lb_ = lb_transfer_timing;
     stats.pareto_dijkstra_ = MOTIS_TIMING_MS(pareto_dijkstra_timing);
     stats.interval_extensions_ = search_iterations - 1;
 

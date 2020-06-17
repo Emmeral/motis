@@ -47,8 +47,6 @@ routing::~routing() = default;
 
 void routing::init(motis::module::registry& reg) {
 
-  LOG(motis::logging::info) << "Routing init";
-
   reg.register_op("/routing",
                   [this](msg_ptr const& msg) { return route(msg); });
   reg.register_op("/trip_to_connection", &routing::trip_to_connection);
