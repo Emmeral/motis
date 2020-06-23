@@ -71,6 +71,7 @@ struct statistics {
     add_entry("total_calculation_time", s.total_calculation_time_);
     add_entry("transfers_lb", s.transfers_lb_);
     add_entry("travel_time_lb", s.travel_time_lb_);
+    add_entry("total_lb", s.total_lb);
     add_entry("interval_extensions", s.interval_extensions_);
 
     return CreateStatistics(fbb, fbb.CreateString(category),
@@ -103,6 +104,7 @@ struct statistics {
          {"total_calculation_time", s.total_calculation_time_},
          {"transfers_lb", s.transfers_lb_},
          {"travel_time_lb", s.travel_time_lb_},
+         {"total_lb", s.total_lb},
          {"interval_extensions", s.interval_extensions_}}};
   }
 };

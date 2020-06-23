@@ -70,7 +70,9 @@ msg_ptr routing::route(msg_ptr const& msg) {
   if (lower_bounds_with_csa_) {
     query.csa_lower_bounds = true;
     query.csa_timetable = csa_timetable_.get();
+
   }
+  csa::csa_query query_csa(sched, req);
 
   auto res = search_dispatch(query, req->start_type(), req->search_type(),
                              req->search_dir());

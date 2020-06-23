@@ -1,6 +1,6 @@
 #pragma once
 
-#include <motis/routing/search.h>
+#include "motis/routing/search_query.h"
 #include "motis/routing/lower_bounds/lower_bounds.h"
 
 namespace motis::routing {
@@ -17,9 +17,15 @@ public:
   void calculate();
 
 private:
+
+  static constexpr lower_bounds::interchanges_t INVALID_INTERCHANGE_AMOUNT =
+      std::numeric_limits<lower_bounds::interchanges_t>::max();
+  static constexpr lower_bounds::time_diff_t INVALID_TIME_DIFF =
+      std::numeric_limits<lower_bounds::time_diff_t>::max();
+
   struct combined_bound {
-    time_diff_t time_diff_{};
-    interchanges_t transfer_amount{};
+    time_diff_t time_diff_{INVALID_TIME_DIFF};
+    interchanges_t transfer_amount{INVALID_INTERCHANGE_AMOUNT};
   };
 
   search_query const& routing_query_;

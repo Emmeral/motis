@@ -6,28 +6,24 @@
 
 namespace motis::routing {
 
-// in caps?
-constexpr lower_bounds::interchanges_t invalid_interchange_amount =
-    std::numeric_limits<lower_bounds::interchanges_t>::max();
-constexpr lower_bounds::time_diff_t invalid_time_diff =
-    std::numeric_limits<lower_bounds::time_diff_t>::max();
-
 lower_bounds_csa::lower_bounds_csa(search_query const& routing_query,
                                    search_dir direction)
-    : routing_query_{routing_query}, direction_{direction}, bounds_() {}
+    : routing_query_{routing_query},
+      direction_{direction},
+      bounds_(routing_query.sched_->stations_.size()) {}
 
 lower_bounds::time_diff_t lower_bounds_csa::time_from_node(node const* n) {
-  return bounds_[n->id_].time_diff_;
+  return bounds_[n->get_station()->id_].time_diff_;
 }
 bool lower_bounds_csa::is_valid_time_diff(time_diff_t diff) {
-  return diff != invalid_time_diff;
+  return diff != INVALID_TIME_DIFF;
 }
 lower_bounds::interchanges_t lower_bounds_csa::transfers_from_node(
     node const* n) {
-  return bounds_[n->id_].transfer_amount;
+  return bounds_[n->get_station()->id_].transfer_amount;
 }
 bool lower_bounds_csa::is_valid_transfer_amount(interchanges_t amount) {
-  return amount != invalid_interchange_amount;
+  return amount != INVALID_INTERCHANGE_AMOUNT;
 }
 
 void lower_bounds_csa::calculate() {
@@ -45,23 +41,40 @@ void lower_bounds_csa::calculate() {
   auto const times = motis::csa::get_arrival_times(
       *routing_query_.csa_timetable, initial_query);
 
-  // do I use the correct ID?
   auto arrival_times = times[to_id];
+
+  // it is tricky thinking about forward and backwards search. Also CSA returns
+  // 0 as invalid if searching backwards
+  // the variables are names as if the search direction was forward
+  auto const invalid_time = direction_ == search_dir::FWD
+                                ? std::numeric_limits<time>::max()
+                                : std::numeric_limits<time>::min();
+  auto const minimal_time = direction_ == search_dir::FWD
+                                ? std::numeric_limits<time>::min()
+                                : std::numeric_limits<time>::max();
+
+  auto const earlier =
+      direction_ == search_dir::FWD
+          ? [](const time t1, const time t2) { return t1 < t2; }
+          : [](const time t1, const time t2) { return t1 > t2; };
 
   const search_dir notDir =
       direction_ == search_dir::FWD ? search_dir::BWD : search_dir::FWD;
 
-  // check if target is reachable and find the latest arrival time
+  // find "greatest" time which is not the invalid one
   bool valid{false};
-  time last_arrival{0};
+  time last_arrival{minimal_time};
   for (auto t : arrival_times) {
-    if (t != INVALID_TIME && t > last_arrival) {
+    if (t != invalid_time && earlier(last_arrival, t)) {
       last_arrival = t;
       valid = true;
     }
   }
 
   // TODO return if not valid. Also what if the interval can be extended?
+  if (!valid) {
+    return;
+  }
 
   // signals ontrip station start because no end of interval
   interval backwards_interval{last_arrival};
@@ -71,22 +84,25 @@ void lower_bounds_csa::calculate() {
   auto const backwards_times = motis::csa::get_arrival_times(
       *routing_query_.csa_timetable, backwards_query);
 
-  std::transform(backwards_times.begin(), backwards_times.end(),
-                 bounds_.begin(), [&last_arrival](auto arr) {
-                   auto minIt = std::min_element(arr.begin().arr.end());
-                   time minElem = *minIt;
-                   interchanges_t amount;
-                   time_diff_t diff;
+  std::transform(
+      backwards_times.begin(), backwards_times.end(), bounds_.begin(),
+      [last_arrival, &earlier, minimal_time](auto arr) {
+        auto last_departure_it =
+            std::max_element(arr.begin(), arr.end(), earlier);
+        time last_departure = *last_departure_it;
+        interchanges_t amount;
+        time_diff_t diff;
 
-                   if (minElem < INVALID_TIME) {
-                     amount = *minIt;
-                     diff = minElem - last_arrival;
-                   } else {
-                     amount = invalid_interchange_amount;
-                     diff = invalid_time_diff;
-                   }
-                   return combined_bound{diff, amount};
-                 });
+        if (earlier(minimal_time, last_departure)) {
+          amount = std::distance(arr.begin(), last_departure_it);
+          diff = last_arrival > last_departure ? last_arrival - last_departure
+                                               : last_departure - last_arrival;
+        } else {
+          amount = INVALID_INTERCHANGE_AMOUNT;
+          diff = INVALID_TIME_DIFF;
+        }
+        return combined_bound{diff, amount};
+      });
 }
 
 }  // namespace motis::routing

@@ -15,6 +15,8 @@ public:
 
   virtual interchanges_t transfers_from_node(node const* n) = 0;
   virtual bool is_valid_transfer_amount(interchanges_t amount) = 0;
+
+  virtual ~lower_bounds() = default;
 };
 
 }  // namespace motis::routing
