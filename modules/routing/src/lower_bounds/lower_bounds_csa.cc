@@ -10,7 +10,18 @@ lower_bounds_csa::lower_bounds_csa(search_query const& routing_query,
                                    search_dir direction)
     : routing_query_{routing_query},
       direction_{direction},
-      bounds_(routing_query.sched_->stations_.size()) {}
+      bounds_(routing_query.sched_->stations_.size()) {
+
+  // it is tricky thinking about forward and backwards search. Also CSA returns
+  // 0 as invalid if searching backwards
+  // the variables are names as if the search direction was forward
+  invalid_time_ = direction_ == search_dir::FWD
+                      ? std::numeric_limits<time>::max()
+                      : std::numeric_limits<time>::min();
+  minimal_time_ = direction_ == search_dir::FWD
+                      ? std::numeric_limits<time>::min()
+                      : std::numeric_limits<time>::max();
+}
 
 lower_bounds::time_diff_t lower_bounds_csa::time_from_node(node const* n) {
   return bounds_[n->get_station()->id_].time_diff_;
@@ -20,11 +31,14 @@ bool lower_bounds_csa::is_valid_time_diff(time_diff_t diff) {
 }
 lower_bounds::interchanges_t lower_bounds_csa::transfers_from_node(
     node const* n) {
-  return bounds_[n->get_station()->id_].transfer_amount;
+  return bounds_[n->get_station()->id_].transfer_amount_;
 }
 bool lower_bounds_csa::is_valid_transfer_amount(interchanges_t amount) {
   return amount != INVALID_INTERCHANGE_AMOUNT;
 }
+
+using csa_arrival_times_t =
+    std::vector<std::array<time, csa::MAX_TRANSFERS + 1>>;
 
 void lower_bounds_csa::calculate() {
   // TODO throw error if csa would decline request
@@ -43,66 +57,69 @@ void lower_bounds_csa::calculate() {
 
   auto arrival_times = times[to_id];
 
-  // it is tricky thinking about forward and backwards search. Also CSA returns
-  // 0 as invalid if searching backwards
-  // the variables are names as if the search direction was forward
-  auto const invalid_time = direction_ == search_dir::FWD
-                                ? std::numeric_limits<time>::max()
-                                : std::numeric_limits<time>::min();
-  auto const minimal_time = direction_ == search_dir::FWD
-                                ? std::numeric_limits<time>::min()
-                                : std::numeric_limits<time>::max();
-
-  auto const earlier =
-      direction_ == search_dir::FWD
-          ? [](const time t1, const time t2) { return t1 < t2; }
-          : [](const time t1, const time t2) { return t1 > t2; };
-
   const search_dir notDir =
       direction_ == search_dir::FWD ? search_dir::BWD : search_dir::FWD;
 
-  // find "greatest" time which is not the invalid one
-  bool valid{false};
-  time last_arrival{minimal_time};
-  for (auto t : arrival_times) {
-    if (t != invalid_time && earlier(last_arrival, t)) {
-      last_arrival = t;
-      valid = true;
-    }
-  }
 
-  // TODO return if not valid. Also what if the interval can be extended?
-  if (!valid) {
+  std::vector<time> valid_arrival_times;
+  std::copy_if(arrival_times.begin(), arrival_times.end(),
+               std::back_inserter(valid_arrival_times),
+               [inv_time = invalid_time_](time t) { return t != inv_time; });
+
+  // Return if no valid arrival could be found. Note interval extension not
+  // included
+  if (valid_arrival_times.empty()) {
     return;
   }
 
-  // signals ontrip station start because no end of interval
-  interval backwards_interval{last_arrival};
+  std::vector<csa_arrival_times_t> all_potential_bounds;
 
-  csa::csa_query backwards_query(to_id, from_id, backwards_interval, notDir);
+  for (auto arrival_time : valid_arrival_times) {
+    // signals ontrip station start because no end of interval
+    interval backwards_interval{arrival_time};
+    csa::csa_query backwards_query(to_id, from_id, backwards_interval, notDir);
 
-  auto const backwards_times = motis::csa::get_arrival_times(
-      *routing_query_.csa_timetable, backwards_query);
+    auto const backwards_times = motis::csa::get_arrival_times(
+        *routing_query_.csa_timetable, backwards_query);
 
-  std::transform(
-      backwards_times.begin(), backwards_times.end(), bounds_.begin(),
-      [last_arrival, &earlier, minimal_time](auto arr) {
-        auto last_departure_it =
-            std::max_element(arr.begin(), arr.end(), earlier);
-        time last_departure = *last_departure_it;
-        interchanges_t amount;
-        time_diff_t diff;
+    // get the lower bounds for each node and look if they were decreased
+    for(auto i = 0 ; i < backwards_times.size(); ++i){
+      combined_bound b = get_best_bound_for(arrival_time,backwards_times[i]);
+      bounds_[i].update_with(b);
+    }
+  }
+}
+lower_bounds_csa::combined_bound lower_bounds_csa::get_best_bound_for(
+    time search_start, const std::array<time, csa::MAX_TRANSFERS + 1>& arr) const {
 
-        if (earlier(minimal_time, last_departure)) {
-          amount = std::distance(arr.begin(), last_departure_it);
-          diff = last_arrival > last_departure ? last_arrival - last_departure
-                                               : last_departure - last_arrival;
-        } else {
-          amount = INVALID_INTERCHANGE_AMOUNT;
-          diff = INVALID_TIME_DIFF;
-        }
-        return combined_bound{diff, amount};
-      });
+  time latest_time{minimal_time_};
+  interchanges_t least_interchanges{INVALID_INTERCHANGE_AMOUNT};
+  bool min_interchanges_found = false;
+  // find the "latest" departure time for one station (since the response came
+  // from a backwards search the latest departure time corresponds to the
+  // fastest connections) and also the least amount of interchanges
+  for (auto i = 0; i < arr.size(); ++i) {
+    if (earlier(latest_time, arr[i])) {
+      latest_time = arr[i];
+      if (!min_interchanges_found) {
+        least_interchanges = i;
+        min_interchanges_found = true;
+      }
+    }
+  }
+  time_diff_t diff;
+
+  if (earlier(minimal_time_, latest_time)) {
+    // abs(a - b)
+    diff = search_start > latest_time ? search_start - latest_time
+                                      : latest_time - search_start;
+  } else {
+    diff = INVALID_TIME_DIFF;
+  }
+  return combined_bound{diff, least_interchanges};
+}
+bool lower_bounds_csa::earlier(time t1, time t2) const {
+  return direction_ == search_dir::FWD ? t1 < t2 : t1 > t2;
 }
 
 }  // namespace motis::routing

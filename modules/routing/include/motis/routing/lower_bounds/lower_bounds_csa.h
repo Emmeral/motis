@@ -1,7 +1,8 @@
 #pragma once
 
-#include "motis/routing/search_query.h"
+#include <motis/csa/csa_search_shared.h>
 #include "motis/routing/lower_bounds/lower_bounds.h"
+#include "motis/routing/search_query.h"
 
 namespace motis::routing {
 
@@ -17,7 +18,6 @@ public:
   void calculate();
 
 private:
-
   static constexpr lower_bounds::interchanges_t INVALID_INTERCHANGE_AMOUNT =
       std::numeric_limits<lower_bounds::interchanges_t>::max();
   static constexpr lower_bounds::time_diff_t INVALID_TIME_DIFF =
@@ -25,11 +25,28 @@ private:
 
   struct combined_bound {
     time_diff_t time_diff_{INVALID_TIME_DIFF};
-    interchanges_t transfer_amount{INVALID_INTERCHANGE_AMOUNT};
+    interchanges_t transfer_amount_{INVALID_INTERCHANGE_AMOUNT};
+
+    /**
+     * Updates the combined bound to be the the minimum of itself and the given bound
+     * @param bound the other bound with potential updates
+     */
+    void update_with(const combined_bound& bound){
+      time_diff_ = std::min(time_diff_, bound.time_diff_);
+      transfer_amount_ = std::min(transfer_amount_, bound.transfer_amount_);
+    }
   };
+
+  bool earlier(time t1, time t2) const;
+  lower_bounds_csa::combined_bound get_best_bound_for(
+      time search_start,
+      const std::array<time, csa::MAX_TRANSFERS + 1>& arr) const;
 
   search_query const& routing_query_;
   const search_dir direction_;
+  time minimal_time_;
+  time invalid_time_;
+
   std::vector<combined_bound> bounds_;
 };
 
