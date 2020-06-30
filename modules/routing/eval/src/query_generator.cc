@@ -27,6 +27,7 @@ using namespace motis::routing;
 
 struct generator_settings : public conf::configuration {
   generator_settings() : configuration("Generator Settings") {
+
     param(query_count_, "query_count", "number of queries to generate");
     param(target_file_fwd_, "target_file_fwd",
           "file(s) to write generated departure time queries to. ${target} is "
@@ -37,6 +38,17 @@ struct generator_settings : public conf::configuration {
     param(large_stations_, "large_stations",
           "use only large stations as start/destination");
     param(query_type_, "query_type", "query type: pretrip|ontrip_station");
+    
+    std::string all_search_types;
+    for(auto pair : SEARCH_TYPE_LOOKUP){
+      if(!all_search_types.empty()){
+        all_search_types.append("|");
+      }
+      all_search_types.append(pair.first);
+    }
+
+    param(search_type_, "search_type",
+          "Search criteria used: " + all_search_types);  // TODO fill
     param(targets_, "targets",
           "message target urls. for every url query files will be generated");
   }
@@ -58,11 +70,32 @@ struct generator_settings : public conf::configuration {
     }
   }
 
+  // TODO: is there a better way?
+  static inline const std::map<std::string, SearchType> SEARCH_TYPE_LOOKUP{
+      {"Default", SearchType_Default},
+      {"SingleCriterion", SearchType_SingleCriterion},
+      {"SingleCriterionNoIntercity", SearchType_SingleCriterionNoIntercity},
+      {"LateConnections", SearchType_LateConnections},
+      {"LateConnectionsTest", SearchType_LateConnectionsTest},
+      {"Accessibility", SearchType_Accessibility},
+      {"DefaultPrice", SearchType_DefaultPrice},
+      {"DefaultPriceRegional", SearchType_DefaultPriceRegional}};
+
+  SearchType get_search_type() const {
+    auto iterator = SEARCH_TYPE_LOOKUP.find(search_type_);
+    if (iterator == SEARCH_TYPE_LOOKUP.end()) {
+      throw std::runtime_error{"search type not supported."};
+    } else {
+      return iterator->second;
+    }
+  }
+
   int query_count_{1000};
   std::string target_file_fwd_{"queries-fwd-${target}.txt"};
   std::string target_file_bwd_{"queries-bwd-${target}.txt"};
   bool large_stations_{false};
   std::string query_type_{"pretrip"};
+  std::string search_type_{"Default"};
   std::vector<std::string> targets_{"/routing"};
 };
 
@@ -139,11 +172,12 @@ static It rand_in(It begin, It end) {
   return std::next(begin, rand_in(0, std::distance(begin, end) - 1));
 }
 
-std::string query(std::string const& target, Start const start_type, int id,
-                  std::time_t interval_start, std::time_t interval_end,
-                  std::string const& from_eva, std::string const& to_eva,
-                  SearchDir const dir) {
+std::string query(std::string const& target, Start const start_type,
+                  SearchType search_type, int id, std::time_t interval_start,
+                  std::time_t interval_end, std::string const& from_eva,
+                  std::string const& to_eva, SearchDir const dir) {
   message_creator fbb;
+
   auto const interval = Interval(interval_start, interval_end);
   fbb.create_and_finish(
       MsgContent_RoutingRequest,
@@ -164,7 +198,7 @@ std::string query(std::string const& target, Start const start_type, int id,
                     .Union(),
           CreateInputStation(fbb, fbb.CreateString(to_eva),
                              fbb.CreateString("")),
-          SearchType_Default, dir, fbb.CreateVector(std::vector<Offset<Via>>()),
+          search_type, dir, fbb.CreateVector(std::vector<Offset<Via>>()),
           fbb.CreateVector(std::vector<Offset<AdditionalEdgeWrapper>>()))
           .Union(),
       target);
@@ -340,6 +374,7 @@ int main(int argc, char const** argv) {
   }
 
   auto const start_type = generator_opt.get_start_type();
+  auto const search_type = generator_opt.get_search_type();
   for (int i = 1; i <= generator_opt.query_count_; ++i) {
     auto interval = interval_gen.random_interval();
     auto evas = random_station_ids(sched, station_nodes, interval.first,
@@ -350,11 +385,13 @@ int main(int argc, char const** argv) {
       auto& out_fwd = fwd_ofstreams[f_idx];
       auto& out_bwd = bwd_ofstreams[f_idx];
 
-      out_fwd << query(target, start_type, i, interval.first, interval.second,
-                       evas.first, evas.second, SearchDir_Forward)
+      out_fwd << query(target, start_type, search_type, i, interval.first,
+                       interval.second, evas.first, evas.second,
+                       SearchDir_Forward)
               << "\n";
-      out_bwd << query(target, start_type, i, interval.first, interval.second,
-                       evas.first, evas.second, SearchDir_Backward)
+      out_bwd << query(target, start_type, search_type, i, interval.first,
+                       interval.second, evas.first, evas.second,
+                       SearchDir_Backward)
               << "\n";
     }
   }
