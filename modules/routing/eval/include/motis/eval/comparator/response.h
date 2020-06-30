@@ -69,24 +69,53 @@ struct journey_meta_data {
 
 struct response {
   response(std::vector<Connection const*> const& c,
-           routing::RoutingResponse const* r)
+           routing::RoutingResponse const* r,
+           routing::RoutingRequest const* req)
       : connections_{utl::to_set(
             c, [](auto&& con) { return journey_meta_data(con); })},
-        r_{r} {}
+        r_{r},
+        is_ontrip_(req->start_type() == routing::Start_OntripStationStart) {}
 
-  explicit response(routing::RoutingResponse const* r)
+  response(routing::RoutingResponse const* r,
+           routing::RoutingRequest const* req)
       : connections_{utl::to_set(
             *r->connections(),
             [](Connection const* c) { return journey_meta_data(c); })},
-        r_{r} {}
+        r_{r},
+        is_ontrip_(req->start_type() == routing::Start_OntripStationStart) {}
 
   bool valid() const {
     return std::all_of(begin(connections_), end(connections_),
                        [](journey_meta_data const& c) { return c.valid(); });
   }
 
+  bool has_equal_connections(response const& other) const {
+    if (!is_ontrip_) {
+      return connections_ == other.connections_;
+    }
+
+    for (auto const& con1 : connections_) {
+      bool contains = false;
+
+      for (auto const& con2 : other.connections_) {
+        if (con1.arrival_time_ == con2.arrival_time_ &&
+            con1.transfers_ == con2.transfers_) {
+          contains = true;
+          break;
+        }
+      }
+
+      if (!contains) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   std::set<journey_meta_data> connections_;
   routing::RoutingResponse const* r_;
+  bool is_ontrip_{};
 };
 
 }  // namespace motis::eval::comparator

@@ -69,7 +69,8 @@ void print_empty() {
 bool print_differences(response const& r1, response const& r2,
                        RoutingRequest const* req, int id,
                        bool print_only_second_empty) {
-  if (r1.valid() && r2.valid() && r1.connections_ == r2.connections_) {
+
+  if (r1.valid() && r2.valid() && r1.has_equal_connections(r2)) {
     return true;
   }
 
@@ -230,10 +231,12 @@ struct statistics {
   int errors_{0};
 };
 
-bool analyze_result(int i, std::tuple<msg_ptr, msg_ptr, msg_ptr> const& res,
+bool analyze_result(int i,
+                    std::tuple<msg_ptr, msg_ptr, msg_ptr, msg_ptr> const& res,
                     std::ofstream& failed_queries, statistics& stats,
                     bool print_only_second_empty) {
-  if (!std::get<0>(res) || !std::get<1>(res) || !std::get<2>(res)) {
+  if (!std::get<0>(res) || !std::get<1>(res) || !std::get<2>(res) ||
+      !std::get<3>(res)) {
     return false;
   }
 
@@ -252,58 +255,67 @@ bool analyze_result(int i, std::tuple<msg_ptr, msg_ptr, msg_ptr> const& res,
     return true;
   }
 
-  auto const& q = std::get<0>(res);
-  auto const& r1 = std::get<1>(res);
-  auto const& r2 = std::get<2>(res);
+  auto const& q1 = std::get<0>(res);
+  auto const& q2 = std::get<1>(res);
+  auto const& r1 = std::get<2>(res);
+  auto const& r2 = std::get<3>(res);
 
-  if (print_differences(response(motis_content(RoutingResponse, r1)),
-                        response(motis_content(RoutingResponse, r2)),
-                        motis_content(RoutingRequest, q), i,
+  if (print_differences(response(motis_content(RoutingResponse, r1),
+                                 motis_content(RoutingRequest, q1)),
+                        response(motis_content(RoutingResponse, r2),
+                                 motis_content(RoutingRequest, q2)),
+                        motis_content(RoutingRequest, q1), i,
                         print_only_second_empty)) {
     ++stats.matches_;
   } else {
     ++stats.mismatches_;
-    failed_queries << q->to_json(true) << "\n";
+    failed_queries << q1->to_json(true) << "\n";
     failed_queries.flush();
     write_file(r1->to_json(true),
                "fail_responses/" + std::to_string(i) + "_1.json");
     write_file(r2->to_json(true),
                "fail_responses/" + std::to_string(i) + "_2.json");
-    write_file(q->to_json(true), "fail_queries/" + std::to_string(i) + ".json");
+    write_file(q1->to_json(true),
+               "fail_queries/" + std::to_string(i) + ".json");
   }
 
   return true;
 }
 
 int main(int argc, char* argv[]) {
-  if (argc != 4) {
+  if (argc != 5) {
     std::cout << "Usage: " << argv[0]
-              << " {results.txt I} {results.txt II} {queries.txt}\n";
+              << " {results.txt I} {results.txt II} {queries.txt I} "
+                 "{queries.txt II}\n";
     return 0;
   }
 
   bool print_only_second_empty = false;
 
   statistics stats;
-  std::ifstream in1(argv[1]), in2(argv[2]), inq(argv[3]);
+  std::ifstream in1(argv[1]), in2(argv[2]), inq1(argv[3]), inq2(argv[4]);
   std::ofstream failed_queries("failed_queries.txt");
-  std::string line1, line2, lineq;
-  std::map<int, std::tuple<msg_ptr, msg_ptr, msg_ptr>> pending_msgs;
+  std::string line1, line2, lineq1, lineq2;
+  std::map<int, std::tuple<msg_ptr, msg_ptr, msg_ptr, msg_ptr>> pending_msgs;
   while (in1.peek() != EOF && !in1.eof() && in2.peek() != EOF && !in2.eof() &&
-         inq.peek() != EOF && !inq.eof()) {
+             inq1.peek() != EOF && !inq1.eof(),
+         inq2.peek() != EOF && !inq2.eof()) {
     std::getline(in1, line1);
     std::getline(in2, line2);
-    std::getline(inq, lineq);
+    std::getline(inq1, lineq1);
+    std::getline(inq2, lineq2);
 
     auto const r1 = make_msg(line1);
     auto const r2 = make_msg(line2);
-    auto const q = make_msg(lineq);
+    auto const q1 = make_msg(lineq1);
+    auto const q2 = make_msg(lineq2);
 
-    std::get<0>(pending_msgs[q->id()]) = q;
-    std::get<1>(pending_msgs[r1->id()]) = r1;
-    std::get<2>(pending_msgs[r2->id()]) = r2;
+    std::get<0>(pending_msgs[q1->id()]) = q1;
+    std::get<1>(pending_msgs[q2->id()]) = q2;
+    std::get<2>(pending_msgs[r1->id()]) = r1;
+    std::get<3>(pending_msgs[r2->id()]) = r2;
 
-    for (auto const i : {q->id(), r1->id(), r2->id()}) {
+    for (auto const i : {q1->id(), q2->id(), r1->id(), r2->id()}) {
       auto const it = pending_msgs.find(i);
       if (it == end(pending_msgs)) {
         continue;
