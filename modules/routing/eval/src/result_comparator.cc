@@ -290,16 +290,28 @@ int main(int argc, char* argv[]) {
     return 0;
   }
 
+  bool invalid_files{false};
+  for(auto i = 1; i < 5 ; ++i){
+    if(!std::filesystem::exists(argv[i])){
+      std::cout << "File \"" << argv[i] << "\" does not exist \n";
+      invalid_files = true;
+    }
+  }
+  if(invalid_files){
+    return 1;
+  }
+
   bool print_only_second_empty = false;
 
   statistics stats;
   std::ifstream in1(argv[1]), in2(argv[2]), inq1(argv[3]), inq2(argv[4]);
+
   std::ofstream failed_queries("failed_queries.txt");
   std::string line1, line2, lineq1, lineq2;
   std::map<int, std::tuple<msg_ptr, msg_ptr, msg_ptr, msg_ptr>> pending_msgs;
   while (in1.peek() != EOF && !in1.eof() && in2.peek() != EOF && !in2.eof() &&
-             inq1.peek() != EOF && !inq1.eof(),
-         inq2.peek() != EOF && !inq2.eof()) {
+         inq1.peek() != EOF && !inq1.eof() && inq2.peek() != EOF &&
+         !inq2.eof()) {
     std::getline(in1, line1);
     std::getline(in2, line2);
     std::getline(inq1, lineq1);
