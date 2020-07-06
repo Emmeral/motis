@@ -42,7 +42,7 @@ private:
       time search_start,
       const std::array<time, csa::MAX_TRANSFERS + 1>& arr) const;
 
-  search_query const& routing_query_;
+  const search_query& routing_query_;
   const search_dir direction_;
   time minimal_time_;
   time invalid_time_;

@@ -84,7 +84,7 @@ struct search {
 
     std::unique_ptr<lower_bounds> lbs;
 
-    // TODO: make this better and introduce total lb stats
+    // TODO: make this better
     uint64_t lb_transfer_timing{0};
     uint64_t lb_travel_time_timing{0};
     uint64_t lb_total_timing{0};
@@ -142,7 +142,7 @@ struct search {
         q.from_ == q.sched_->station_nodes_.at(0).get()) {
       if (!lbs->is_valid_time_diff(
               lbs->time_from_node(q.from_))) {  // condition already checked?
-        return search_result(lb_travel_time_timing);
+        return search_result(lb_travel_time_timing); // TODO constructor wrong
       }
     } else if (!q.use_start_metas_) {
       if (!lbs->is_valid_time_diff(

@@ -72,8 +72,6 @@ void lower_bounds_csa::calculate() {
     return;
   }
 
-  std::vector<csa_arrival_times_t> all_potential_bounds;
-
   for (auto arrival_time : valid_arrival_times) {
     // signals ontrip station start because no end of interval
     interval backwards_interval{arrival_time};

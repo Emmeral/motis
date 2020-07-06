@@ -38,9 +38,9 @@ struct generator_settings : public conf::configuration {
     param(large_stations_, "large_stations",
           "use only large stations as start/destination");
     param(query_type_, "query_type", "query type: pretrip|ontrip_station");
-    
+
     std::string all_search_types;
-    for(auto pair : SEARCH_TYPE_LOOKUP){
+    for(auto& pair : SEARCH_TYPE_LOOKUP){
       if(!all_search_types.empty()){
         all_search_types.append("|");
       }
