@@ -1,5 +1,6 @@
 #pragma once
 
+#include <motis/routing/lower_bounds/lower_bounds_type.h>
 #include <memory>
 #include <mutex>
 #include <vector>
@@ -32,8 +33,7 @@ private:
 
   std::mutex mem_pool_mutex_;
   std::vector<std::unique_ptr<memory>> mem_pool_;
-
-  bool lower_bounds_with_csa_{false};
+  lower_bounds_type lb_type_{lower_bounds_type::CG};
 
   std::unique_ptr<csa::csa_timetable> csa_timetable_;
 

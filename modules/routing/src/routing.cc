@@ -38,9 +38,8 @@ namespace motis::routing {
 
 routing::routing() : module("Routing", "routing") {
 
-  param(lower_bounds_with_csa_, "lower_bounds_with_csa",
-        "Calculates lower bounds using the CSA algorithm to increase label "
-        "domination");
+  param(lb_type_, "lb_type",
+        "Select the method to calculate lower bounds (cg|csa|none)");
 }
 
 routing::~routing() = default;
@@ -51,7 +50,8 @@ void routing::init(motis::module::registry& reg) {
                   [this](msg_ptr const& msg) { return route(msg); });
   reg.register_op("/trip_to_connection", &routing::trip_to_connection);
 
-  if (lower_bounds_with_csa_) {
+  if (lb_type_ == lower_bounds_type::CSA) {
+    LOG(logging::info) << "Building CSA timetable for routing";
     auto const& sched = get_sched();
     csa_timetable_ = motis::csa::build_csa_timetable(sched, false, false);
   }
@@ -67,10 +67,9 @@ msg_ptr routing::route(msg_ptr const& msg) {
   mem_retriever mem(mem_pool_mutex_, mem_pool_, LABEL_STORE_START_SIZE);
   query.mem_ = &mem.get();
 
-  if (lower_bounds_with_csa_) {
-    query.csa_lower_bounds = true;
+  query.lb_type = lb_type_;
+  if (lb_type_ == lower_bounds_type::CSA) {
     query.csa_timetable = csa_timetable_.get();
-
   }
   csa::csa_query query_csa(sched, req);
 

@@ -1,9 +1,10 @@
 #pragma once
 
-#include "motis/routing/search_query.h"
 #include "motis/csa/build_csa_timetable.h"
 #include "motis/routing/lower_bounds/lower_bounds_const_graph.h"
 #include "motis/routing/lower_bounds/lower_bounds_csa.h"
+#include "motis/routing/lower_bounds/lower_bounds_none.h"
+#include "motis/routing/search_query.h"
 #include "utl/to_vec.h"
 
 #include "motis/hash_map.h"
@@ -80,8 +81,6 @@ struct search {
       is_goal[q.to_->id_] = true;
     }
 
-    // hier muss der csa aufgerufen werden
-
     std::unique_ptr<lower_bounds> lbs;
 
     // TODO: make this better
@@ -89,45 +88,53 @@ struct search {
     uint64_t lb_travel_time_timing{0};
     uint64_t lb_total_timing{0};
 
-    if (q.csa_lower_bounds) {
-      auto lbs_csa = std::make_unique<lower_bounds_csa>(q, Dir);
+    switch (q.lb_type) {
+      case lower_bounds_type::CSA: {
+        auto lbs_csa = std::make_unique<lower_bounds_csa>(q, Dir);
 
-      MOTIS_START_TIMING(total_lb_timing);
-      lbs_csa->calculate();
-      MOTIS_STOP_TIMING(total_lb_timing);
+        MOTIS_START_TIMING(total_lb_timing);
+        lbs_csa->calculate();
+        MOTIS_STOP_TIMING(total_lb_timing);
 
-      lb_total_timing = MOTIS_TIMING_MS(total_lb_timing);
+        lb_total_timing = MOTIS_TIMING_MS(total_lb_timing);
 
-      lbs = std::move(lbs_csa);
-    } else {
-
-      auto lbs_cg = std::make_unique<lower_bounds_const_graph>(
-          *q.sched_,  //
-          Dir == search_dir::FWD ? q.sched_->travel_time_lower_bounds_fwd_
-                                 : q.sched_->travel_time_lower_bounds_bwd_,
-          Dir == search_dir::FWD ? q.sched_->transfers_lower_bounds_fwd_
-                                 : q.sched_->transfers_lower_bounds_bwd_,
-          goal_ids, travel_time_lb_graph_edges, transfers_lb_graph_edges);
-
-      MOTIS_START_TIMING(travel_time_lb_timing);
-      lbs_cg->calculate_timing();
-      MOTIS_STOP_TIMING(travel_time_lb_timing);
-
-      lb_travel_time_timing = MOTIS_TIMING_MS(travel_time_lb_timing);
-
-      // questionable if condition might be removed
-      if (!lbs_cg->is_valid_time_diff(lbs_cg->time_from_node(q.from_))) {
-        return search_result(lb_travel_time_timing);
+        lbs = std::move(lbs_csa);
+        break;
       }
+      case lower_bounds_type::CG: {
+        auto lbs_cg = std::make_unique<lower_bounds_const_graph>(
+            *q.sched_,  //
+            Dir == search_dir::FWD ? q.sched_->travel_time_lower_bounds_fwd_
+                                   : q.sched_->travel_time_lower_bounds_bwd_,
+            Dir == search_dir::FWD ? q.sched_->transfers_lower_bounds_fwd_
+                                   : q.sched_->transfers_lower_bounds_bwd_,
+            goal_ids, travel_time_lb_graph_edges, transfers_lb_graph_edges);
 
-      MOTIS_START_TIMING(transfers_lb_timing);
-      lbs_cg->calculate_transfers();
-      MOTIS_STOP_TIMING(transfers_lb_timing);
+        MOTIS_START_TIMING(travel_time_lb_timing);
+        lbs_cg->calculate_timing();
+        MOTIS_STOP_TIMING(travel_time_lb_timing);
 
-      lb_transfer_timing = MOTIS_TIMING_MS(transfers_lb_timing);
-      lb_total_timing = lb_travel_time_timing + lb_transfer_timing;
+        lb_travel_time_timing = MOTIS_TIMING_MS(travel_time_lb_timing);
 
-      lbs = std::move(lbs_cg);
+        // questionable if condition might be removed
+        if (!lbs_cg->is_valid_time_diff(lbs_cg->time_from_node(q.from_))) {
+          return search_result(lb_travel_time_timing);
+        }
+
+        MOTIS_START_TIMING(transfers_lb_timing);
+        lbs_cg->calculate_transfers();
+        MOTIS_STOP_TIMING(transfers_lb_timing);
+
+        lb_transfer_timing = MOTIS_TIMING_MS(transfers_lb_timing);
+        lb_total_timing = lb_travel_time_timing + lb_transfer_timing;
+
+        lbs = std::move(lbs_cg);
+        break;
+      }
+      case lower_bounds_type::NONE: {
+        auto lbs_none = std::make_unique<lower_bounds_none>();
+        lbs = std::move(lbs_none);
+      }
     }
 
     auto const create_start_edge = [&](node* to) {
@@ -142,7 +149,7 @@ struct search {
         q.from_ == q.sched_->station_nodes_.at(0).get()) {
       if (!lbs->is_valid_time_diff(
               lbs->time_from_node(q.from_))) {  // condition already checked?
-        return search_result(lb_travel_time_timing); // TODO constructor wrong
+        return search_result(lb_travel_time_timing);  // TODO constructor wrong
       }
     } else if (!q.use_start_metas_) {
       if (!lbs->is_valid_time_diff(

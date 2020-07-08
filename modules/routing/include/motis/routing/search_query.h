@@ -1,5 +1,6 @@
 #pragma once
 
+#include "motis/routing/lower_bounds/lower_bounds_type.h"
 #include "motis/core/common/timing.h"
 #include "motis/core/schedule/schedule.h"
 
@@ -23,9 +24,8 @@ struct search_query {
   bool use_dest_metas_{false};
   bool use_start_footpaths_{false};
   light_connection const* lcon_{nullptr};
-  // true if lower bounds should be calculated using csa
-  bool csa_lower_bounds{false};
-  // only set if csa_lower_bounds is true
+  lower_bounds_type lb_type{lower_bounds_type::CG};
+  // only set if lower_bounds_type::CSA is used
   motis::csa::csa_timetable const* csa_timetable{nullptr};
 };
 
