@@ -94,6 +94,7 @@ struct response {
       return connections_ == other.connections_;
     }
 
+    // this <= other
     for (auto const& con1 : connections_) {
       bool contains = false;
 
@@ -109,6 +110,24 @@ struct response {
         return false;
       }
     }
+
+    // other <= this
+    for(auto const& con2 : other.connections_){
+      bool contains = false;
+
+      for (auto const& con1 : connections_) {
+        if (con1.arrival_time_ == con2.arrival_time_ &&
+            con1.transfers_ == con2.transfers_) {
+          contains = true;
+          break;
+        }
+      }
+
+      if (!contains) {
+        return false;
+      }
+    }
+
 
     return true;
   }
