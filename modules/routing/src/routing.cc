@@ -53,7 +53,7 @@ void routing::init(motis::module::registry& reg) {
   if (lb_type_ == lower_bounds_type::CSA) {
     LOG(logging::info) << "Building CSA timetable for routing";
     auto const& sched = get_sched();
-    csa_timetable_ = motis::csa::build_csa_timetable(sched, false, false);
+    csa_timetable_ = motis::csa::build_csa_timetable(sched, false, false, true);
   }
 }
 
