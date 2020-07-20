@@ -5,6 +5,7 @@
 #include "geo/box.h"
 #include "geo/latlng.h"
 
+#include "utl/get_or_create.h"
 #include "utl/to_vec.h"
 
 #include "motis/hash_map.h"
@@ -19,14 +20,14 @@ namespace ml = motis::logging;
 namespace motis::path {
 
 processing_plan make_processing_plan(
-    path_routing& routing, std::vector<station_seq> const& sequences) {
+    path_routing& routing, mcd::vector<station_seq> const& sequences) {
   ml::scoped_timer t{"make_processing_plan"};
   processing_plan pp;
   {
     mcd::hash_map<part_task_key, size_t> part_task_map;
     for (auto const& seq : sequences) {
-      foreach_path_category(seq.categories_, [&](auto const& path_cat,
-                                                 auto motis_cats) {
+      foreach_path_category(seq.classes_, [&](auto const& path_cat,
+                                              auto motis_cats) {
         auto s_task_idx = pp.seq_tasks_.size();
         auto& s_task = pp.seq_tasks_.emplace_back(&seq, std::move(motis_cats));
 
@@ -40,7 +41,7 @@ processing_plan make_processing_plan(
             auto const& station_id_to = seq.station_ids_[i + 1];
 
             auto const make_task = [&](auto const& from, auto const& to) {
-              part_task_key key{strategy, from, to};
+              part_task_key key{strategy, from.str(), to.str()};
 
               auto p_task_idx = utl::get_or_create(part_task_map, key, [&] {
                 geo::box box{seq.coordinates_[i], seq.coordinates_[i + 1]};

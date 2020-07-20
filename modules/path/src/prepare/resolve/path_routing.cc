@@ -4,170 +4,79 @@
 
 #include "motis/core/common/logging.h"
 
-#include "motis/path/prepare/osm/osm_cache.h"
-#include "motis/path/prepare/osm/parse_network.h"
-#include "motis/path/prepare/osm/parse_relations.h"
-
 #include "motis/path/prepare/strategy/osm_strategy.h"
 #include "motis/path/prepare/strategy/osrm_strategy.h"
 #include "motis/path/prepare/strategy/stub_strategy.h"
 
-namespace fs = boost::filesystem;
-namespace ml = motis::logging;
-
 namespace motis::path {
 
 struct path_routing::strategies {
-  std::unique_ptr<osrm_strategy> osrm_strategy_;
+  std::unique_ptr<stub_strategy> stub_;
+  std::unique_ptr<osrm_strategy> osrm_;
+  std::unique_ptr<osm_strategy> net_rail_, net_sub_, net_tram_, net_ship_;
+  std::unique_ptr<osm_strategy> rel_rail_, rel_sub_, rel_tram_, rel_bus_;
 
-  std::unique_ptr<osm_strategy> network_rail_strategy_;
-  std::unique_ptr<osm_strategy> network_sub_strategy_;
-  std::unique_ptr<osm_strategy> network_tram_strategy_;
-
-  std::unique_ptr<osm_strategy> relation_rail_strategy_;
-  std::unique_ptr<osm_strategy> relation_bus_strategy_;
-  std::unique_ptr<osm_strategy> relation_sub_strategy_;
-  std::unique_ptr<osm_strategy> relation_tram_stragegy_;
-
-  std::unique_ptr<stub_strategy> stub_strategy_;
-
-  std::vector<routing_strategy*> rail_strategies_;
-  std::vector<routing_strategy*> bus_strategies_;
-  std::vector<routing_strategy*> subway_strategies_;
-  std::vector<routing_strategy*> tram_strategies_;
+  std::vector<routing_strategy*> rail_strategies_, tram_strategies_,
+      subway_strategies_, bus_strategies_, ship_strategies_;
 };
 
 path_routing::path_routing()
-    : strategies_(std::make_unique<path_routing::strategies>()) {}
+    : strategies_{std::make_unique<path_routing::strategies>()} {}
 path_routing::~path_routing() = default;
-
-path_routing::path_routing(path_routing&&) noexcept = default;
-path_routing& path_routing::operator=(path_routing&&) noexcept = default;
 
 std::vector<routing_strategy*> const& path_routing::strategies_for(
     source_spec::category const cat) const {
-
   switch (cat) {
-    case source_spec::category::RAILWAY: return strategies_->rail_strategies_;
     case source_spec::category::BUS: return strategies_->bus_strategies_;
-    case source_spec::category::SUBWAY: return strategies_->subway_strategies_;
     case source_spec::category::TRAM: return strategies_->tram_strategies_;
-    default: throw utl::fail("unknown category");
+    case source_spec::category::SUBWAY: return strategies_->subway_strategies_;
+    case source_spec::category::RAIL: return strategies_->rail_strategies_;
+    case source_spec::category::SHIP: return strategies_->ship_strategies_;
+    default: throw utl::fail("no strategies for this category");
   }
 }
 
 routing_strategy* path_routing::get_stub_strategy() const {
-  return strategies_->stub_strategy_.get();
-}
-
-std::string relation_cache_name(source_spec::category const& category) {
-  switch (category) {
-    case source_spec::category::RAILWAY: return "pathcache.rail.relation.raw";
-    case source_spec::category::SUBWAY: return "pathcache.subway.relation.raw";
-    case source_spec::category::BUS: return "pathcache.bus.relation.raw";
-    case source_spec::category::TRAM: return "pathcache.tram.relation.raw";
-    default: throw utl::fail("relation_cache: unknown category!");
-  }
-}
-
-std::string network_cache_name(source_spec::category const& category) {
-  switch (category) {
-    case source_spec::category::RAILWAY: return "pathcache.rail.network.raw";
-    case source_spec::category::SUBWAY: return "pathcache.subway.network.raw";
-    case source_spec::category::TRAM: return "pathcache.tram.network.raw";
-    default: throw utl::fail("graph_cache: unknown category!");
-  }
-}
-
-template <typename Func>
-std::vector<std::vector<osm_way>> load_or_parse(std::string const& fname,
-                                                Func&& func) {
-  std::vector<std::vector<osm_way>> ways;
-  if (fs::is_regular_file(fname)) {
-    ml::scoped_timer t{std::string{"load osm from cache "}.append(fname)};
-    ways = load_osm_ways(fname);
-  } else {
-    ml::scoped_timer t{std::string{"parse osm and make cache "}.append(fname)};
-    ways = func();
-    store_osm_ways(fname, ways);
-  }
-  return ways;
+  return strategies_->stub_.get();
 }
 
 path_routing make_path_routing(station_index const& station_idx,
-                               std::string const& osm_path,
+                               osm_data const& osm_data,
                                std::string const& osrm_path) {
-  auto const load_relation_strategy = [&](std::string label,
-                                          strategy_id_t const id,
-                                          source_spec::category const& cat) {
-    auto const fname = relation_cache_name(cat);
-    auto const components =
-        load_or_parse(fname, [&] { return parse_relations(osm_path, cat); });
-
-    ml::scoped_timer t{std::string{"make osm_strategy REL "}.append(fname)};
-    return std::make_unique<osm_strategy>(std::move(label), id, station_idx,
-                                          components,
-                                          source_spec::type::RELATION);
-  };
-  auto const load_network_strategy = [&](std::string label,
-                                         strategy_id_t const id,
-                                         source_spec::category const& cat) {
-    auto const fname = network_cache_name(cat);
-    auto const components =
-        load_or_parse(fname, [&] { return parse_network(osm_path, cat); });
-
-    ml::scoped_timer t{std::string{"make osm_strategy NET "}.append(fname)};
-    return std::make_unique<osm_strategy>(std::move(label), id, station_idx,
-                                          components,
-                                          source_spec::type::RAIL_ROUTE);
-  };
+  using category = source_spec::category;
+  using router = source_spec::router;
 
   path_routing r;
+  auto& s = *r.strategies_;
 
-  strategy_id_t id = 0;
+  strategy_id_t id = 0ULL;
+  s.stub_ = std::make_unique<stub_strategy>(
+      id++, source_spec{category::MULTI, router::STUB}, station_idx.stations_);
 
-  r.strategies_->stub_strategy_ =
-      std::make_unique<stub_strategy>("stub", id++, station_idx.stations_);
+  s.osrm_ = std::make_unique<osrm_strategy>(
+      id++, source_spec{category::MULTI, router::OSRM}, station_idx.stations_,
+      osrm_path);
 
-  r.strategies_->osrm_strategy_ = std::make_unique<osrm_strategy>(
-      "osrm", id++, station_idx.stations_, osrm_path);
+  auto const make_osm_strategy = [&](source_spec const ss) {
+    return std::make_unique<osm_strategy>(id++, ss, station_idx,
+                                          osm_data.profiles_.at(ss));
+  };
 
-  r.strategies_->network_rail_strategy_ =
-      load_network_strategy("net/rail", id++, source_spec::category::RAILWAY);
-  r.strategies_->network_sub_strategy_ =
-      load_network_strategy("net/sub ", id++, source_spec::category::SUBWAY);
-  r.strategies_->network_tram_strategy_ =
-      load_network_strategy("net/tram", id++, source_spec::category::TRAM);
+  s.net_rail_ = make_osm_strategy({category::RAIL, router::OSM_NET});
+  s.net_sub_ = make_osm_strategy({category::SUBWAY, router::OSM_NET});
+  s.net_tram_ = make_osm_strategy({category::TRAM, router::OSM_NET});
+  s.net_ship_ = make_osm_strategy({category::SHIP, router::OSM_NET});
 
-  r.strategies_->relation_rail_strategy_ =
-      load_relation_strategy("rel/rail", id++, source_spec::category::RAILWAY);
-  r.strategies_->relation_bus_strategy_ =
-      load_relation_strategy("rel/bus ", id++, source_spec::category::BUS);
-  r.strategies_->relation_sub_strategy_ =
-      load_relation_strategy("rel/sub ", id++, source_spec::category::SUBWAY);
-  r.strategies_->relation_tram_stragegy_ =
-      load_relation_strategy("rel/tram", id++, source_spec::category::TRAM);
+  s.rel_rail_ = make_osm_strategy({category::RAIL, router::OSM_REL});
+  s.rel_sub_ = make_osm_strategy({category::SUBWAY, router::OSM_REL});
+  s.rel_tram_ = make_osm_strategy({category::TRAM, router::OSM_REL});
+  s.rel_bus_ = make_osm_strategy({category::BUS, router::OSM_REL});
 
-  r.strategies_->rail_strategies_.push_back(
-      r.strategies_->relation_rail_strategy_.get());
-  r.strategies_->rail_strategies_.push_back(
-      r.strategies_->network_rail_strategy_.get());
-
-  r.strategies_->bus_strategies_.push_back(
-      r.strategies_->relation_bus_strategy_.get());
-  r.strategies_->bus_strategies_.push_back(r.strategies_->osrm_strategy_.get());
-
-  r.strategies_->subway_strategies_.push_back(
-      r.strategies_->relation_sub_strategy_.get());
-  r.strategies_->subway_strategies_.push_back(
-      r.strategies_->network_sub_strategy_.get());
-
-  r.strategies_->tram_strategies_.push_back(
-      r.strategies_->relation_tram_stragegy_.get());
-  r.strategies_->tram_strategies_.push_back(
-      r.strategies_->network_tram_strategy_.get());
-  r.strategies_->tram_strategies_.push_back(
-      r.strategies_->osrm_strategy_.get());
+  s.bus_strategies_ = {s.rel_bus_.get(), s.osrm_.get()};
+  s.subway_strategies_ = {s.rel_sub_.get(), s.net_sub_.get()};
+  s.tram_strategies_ = {s.rel_tram_.get(), s.net_tram_.get(), s.osrm_.get()};
+  s.rail_strategies_ = {s.rel_rail_.get(), s.net_rail_.get()};
+  s.ship_strategies_ = {s.net_ship_.get()};
 
   return r;
 }

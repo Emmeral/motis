@@ -6,6 +6,7 @@
 #include <numeric>
 
 #include "utl/get_or_create.h"
+#include "utl/progress_tracker.h"
 #include "utl/to_vec.h"
 
 #include "date/date.h"
@@ -174,7 +175,7 @@ station_node* graph_builder::get_station_node(Station const* station) const {
 }
 
 full_trip_id graph_builder::get_full_trip_id(Service const* s, int day,
-                                             int section_idx) const {
+                                             int section_idx) {
   auto const& stops = s->route()->stations();
   auto const dep_station = stops->Get(section_idx);
   auto const arr_station = stops->Get(stops->size() - 1);
@@ -184,7 +185,7 @@ full_trip_id graph_builder::get_full_trip_id(Service const* s, int day,
   auto const dep_tz = sched_.stations_[dep_station_idx]->timez_;
   auto const provider_first_section = s->sections()->Get(0)->provider();
   auto const dep_time = get_adjusted_event_time(
-      sched_.schedule_begin_, day - first_day_,
+      tz_cache_, sched_.schedule_begin_, day - first_day_,
       s->times()->Get(section_idx * 2 + 1), dep_tz,
       c_str(dep_station->timezone_name()),
       provider_first_section == nullptr
@@ -195,7 +196,7 @@ full_trip_id graph_builder::get_full_trip_id(Service const* s, int day,
   auto const provider_last_section =
       s->sections()->Get(s->sections()->size() - 1)->provider();
   auto const arr_time = get_adjusted_event_time(
-      sched_.schedule_begin_, day - first_day_,
+      tz_cache_, sched_.schedule_begin_, day - first_day_,
       s->times()->Get(s->times()->size() - 2), arr_tz,
       c_str(arr_station->timezone_name()),
       provider_last_section == nullptr
@@ -273,7 +274,10 @@ void graph_builder::add_services(Vector<Offset<Service>> const* services) {
                      return lhs->route() < rhs->route();
                    });
 
-  auto prev_progress = 0U;
+  auto progress_tracker = utl::get_active_progress_tracker();
+  progress_tracker->status("Build Services")
+      .out_bounds(progress_offset_, 90)
+      .in_high(sorted.size());
 
   auto it = begin(sorted);
   mcd::vector<Service const*> route_services;
@@ -291,16 +295,7 @@ void graph_builder::add_services(Vector<Offset<Service>> const* services) {
     }
 
     route_services.clear();
-
-    auto const progress = static_cast<int>(
-        progress_offset_ +
-        (100.0 - progress_offset_) *
-            static_cast<float>(std::distance(begin(sorted), it)) /
-            sorted.size());
-    if (progress != prev_progress) {
-      prev_progress = progress;
-      std::clog << '\0' << progress << '\0';
-    }
+    progress_tracker->update(std::distance(begin(sorted), it));
   }
 }
 
@@ -560,7 +555,8 @@ light_connection graph_builder::section_to_connection(
 
   // Build full connection.
   auto clasz_it = sched_.classes_.find(section->category()->name()->str());
-  con_.clasz_ = (clasz_it == end(sched_.classes_)) ? 9 : clasz_it->second;
+  con_.clasz_ = (clasz_it == end(sched_.classes_)) ? service_class::OTHER
+                                                   : clasz_it->second;
   con_.price_ = get_distance(from, to) * get_price_per_km(con_.clasz_);
   con_.d_track_ = get_or_create_track(dep_day_index, dep_platf);
   con_.a_track_ = get_or_create_track(arr_day_index, arr_platf);
@@ -572,14 +568,14 @@ light_connection graph_builder::section_to_connection(
                                     ? nullptr
                                     : section->provider()->timezone_name();
   std::tie(dep_motis_time, arr_motis_time) = get_event_times(
-      sched_.schedule_begin_, day - first_day_, prev_arr, dep_time, arr_time,
-      from.timez_, c_str(from_station->timezone_name()),
+      tz_cache_, sched_.schedule_begin_, day - first_day_, prev_arr, dep_time,
+      arr_time, from.timez_, c_str(from_station->timezone_name()),
       c_str(section_timezone), to.timez_, c_str(to_station->timezone_name()),
       c_str(section_timezone), adjusted);
 
   // Count events.
-  ++from.dep_class_events_.at(con_.clasz_);
-  ++to.arr_class_events_.at(con_.clasz_);
+  ++from.dep_class_events_.at(static_cast<service_class_t>(con_.clasz_));
+  ++to.arr_class_events_.at(static_cast<service_class_t>(con_.clasz_));
 
   // Track first event.
   sched_.first_event_schedule_time_ = std::min(
@@ -618,6 +614,12 @@ void graph_builder::add_footpaths(Vector<Offset<Footpath>> const* footpaths) {
     auto const to_node = to_node_it->second;
     auto const& from_station = *sched_.stations_.at(from_node->id_);
     auto const& to_station = *sched_.stations_.at(to_node->id_);
+
+    if (from_node == to_node) {
+      LOG(warn) << "Footpath loop at station " << from_station.eva_nr_
+                << " ignored";
+      continue;
+    }
 
     if (adjust_footpaths_) {
       uint32_t max_transfer_time =
@@ -852,18 +854,19 @@ schedule_ptr build_graph(Schedule const* serialized, loader_options const& opt,
     sched->name_ = serialized->name()->str();
   }
 
-  clog_import_step("build graph", progress_offset);
+  auto progress_tracker = utl::get_active_progress_tracker();
+
+  progress_tracker->status("Build Graph").out_bounds(progress_offset, 90);
   graph_builder builder(*sched, serialized->interval(), opt, progress_offset);
   builder.add_stations(serialized->stations());
   if (serialized->meta_stations() != nullptr) {
     builder.link_meta_stations(serialized->meta_stations());
   }
 
-  std::clog << '\0' << 'S' << "Build Services" << '\0';
   builder.add_services(serialized->services());
   if (opt.apply_rules_) {
     scoped_timer timer("rule services");
-    std::clog << '\0' << 'S' << "Build Rule Services" << '\0';
+    progress_tracker->status("Rule Services").out_bounds(90, 92);
     build_rule_routes(builder, serialized->rule_services());
   }
 
@@ -871,26 +874,38 @@ schedule_ptr build_graph(Schedule const* serialized, loader_options const& opt,
     sched->expanded_trips_.finish_map();
   }
 
+  progress_tracker->status("Footpaths").out_bounds(92, 93);
   builder.add_footpaths(serialized->footpaths());
 
+  progress_tracker->status("Connect Reverse").out_bounds(93, 94);
   builder.connect_reverse();
+
+  progress_tracker->status("Sort Trips").out_bounds(94, 95);
   builder.sort_trips();
 
   if (opt.expand_footpaths_) {
+    progress_tracker->status("Expand Footpaths").out_bounds(95, 96);
     calc_footpaths(*sched);
   }
 
   sched->hash_ = serialized->hash();
   sched->route_count_ = builder.next_route_index_;
   sched->node_count_ = builder.next_node_id_;
+
+  progress_tracker->status("Lower Bounds").out_bounds(96, 100).in_high(4);
   sched->transfers_lower_bounds_fwd_ = build_interchange_graph(
       sched->station_nodes_, sched->route_count_, search_dir::FWD);
+  progress_tracker->increment();
   sched->transfers_lower_bounds_bwd_ = build_interchange_graph(
       sched->station_nodes_, sched->route_count_, search_dir::BWD);
+  progress_tracker->increment();
   sched->travel_time_lower_bounds_fwd_ =
       build_station_graph(sched->station_nodes_, search_dir::FWD);
+  progress_tracker->increment();
   sched->travel_time_lower_bounds_bwd_ =
       build_station_graph(sched->station_nodes_, search_dir::BWD);
+  progress_tracker->increment();
+
   sched->waiting_time_rules_ = load_waiting_time_rules(
       opt.wzr_classes_path_, opt.wzr_matrix_path_, sched->categories_);
   sched->schedule_begin_ -= SCHEDULE_OFFSET_MINUTES * 60;

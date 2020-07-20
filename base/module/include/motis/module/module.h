@@ -10,7 +10,6 @@
 #include "conf/configuration.h"
 
 #include "motis/module/message.h"
-#include "motis/module/progress_listener.h"
 #include "motis/module/registry.h"
 #include "motis/module/shared_data.h"
 
@@ -38,7 +37,7 @@ struct module : public conf::configuration {
   void set_data_directory(std::string const&);
   void set_shared_data(shared_data*);
 
-  virtual void import(progress_listener&, registry&) {}
+  virtual void import(registry&) {}
   virtual void init(registry&) {}
 
   virtual bool import_successful() const { return true; }
@@ -54,6 +53,16 @@ protected:
   template <typename T>
   T& get_shared_data_mutable(std::string_view const s) {
     return shared_data_->get<T>(s);
+  }
+
+  template <typename T>
+  T const* find_shared_data(std::string_view const s) const {
+    return shared_data_->find<T>(s);
+  }
+
+  template <typename T>
+  void add_shared_data(std::string_view const s, T&& data) {
+    shared_data_->emplace_data(s, std::forward<T>(data));
   }
 
   boost::filesystem::path const& get_data_directory() const;

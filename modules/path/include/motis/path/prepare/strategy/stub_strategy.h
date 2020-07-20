@@ -8,15 +8,16 @@
 #include "utl/to_vec.h"
 
 #include "motis/hash_map.h"
+#include "motis/vector.h"
 
 #include "motis/path/prepare/strategy/routing_strategy.h"
 
 namespace motis::path {
 
 struct stub_strategy : public routing_strategy {
-  stub_strategy(std::string label, strategy_id_t const strategy_id,
+  stub_strategy(strategy_id_t strategy_id, source_spec spec,
                 std::vector<station> const& stations)
-      : routing_strategy(std::move(label), strategy_id) {
+      : routing_strategy(strategy_id, spec) {
     auto id = 0U;
     for (auto const& station : stations) {
       stations_to_refs_[station.id_] = {{strategy_id, id++, station.pos_, 0}};
@@ -48,7 +49,7 @@ struct stub_strategy : public routing_strategy {
   }
 
   osm_path get_path(node_ref const& from, node_ref const& to) const override {
-    return osm_path{geo::polyline{from.coords_, to.coords_}};
+    return osm_path{mcd::vector<geo::latlng>{from.coords_, to.coords_}};
   }
 
   mcd::hash_map<std::string, std::vector<node_ref>> stations_to_refs_;

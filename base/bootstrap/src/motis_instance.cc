@@ -6,6 +6,9 @@
 
 #include "boost/filesystem.hpp"
 
+#include "utl/pipes.h"
+#include "utl/progress_tracker.h"
+#include "utl/raii.h"
 #include "utl/verify.h"
 
 #include "motis/core/common/logging.h"
@@ -13,10 +16,10 @@
 #include "motis/module/context/motis_call.h"
 #include "motis/module/context/motis_publish.h"
 #include "motis/module/event_collector.h"
+#include "motis/bootstrap/import_coastline.h"
 #include "motis/bootstrap/import_dem.h"
 #include "motis/bootstrap/import_osm.h"
 #include "motis/bootstrap/import_schedule.h"
-#include "motis/bootstrap/import_status.h"
 #include "motis/loader/loader.h"
 
 #include "modules.h"
@@ -64,20 +67,14 @@ void motis_instance::import(module_settings const& module_opt,
                             loader::loader_options const& dataset_opt,
                             import_settings const& import_opt,
                             bool const silent) {
-  import_status status;
-  status.silent_ = silent;
-  registry_.subscribe("/import", [&](msg_ptr const& msg) -> msg_ptr {
-    if (status.update(msg)) {
-      status.print();
-    }
-    return nullptr;
-  });
+  auto bars = utl::global_progress_bars{silent};
 
   registry_.subscribe("/import", import_osm);
   registry_.subscribe("/import", import_dem);
+  registry_.subscribe("/import", import_coastline);
 
   std::make_shared<event_collector>(
-      status, import_opt.data_directory_, "schedule", registry_,
+      import_opt.data_directory_, "schedule", registry_,
       [&](std::map<std::string, msg_ptr> const& dependencies) {
         import_schedule(dataset_opt, dependencies.at("SCHEDULE"), *this);
       })
@@ -96,7 +93,7 @@ void motis_instance::import(module_settings const& module_opt,
         }
 
         for (auto const& parser : loader::parsers()) {
-          std::clog << "missing files:\n";
+          std::clog << "missing files in " << path << ":\n";
           for (auto const& file : parser->missing_files(path)) {
             std::clog << "  " << file << "\n";
           }
@@ -108,7 +105,7 @@ void motis_instance::import(module_settings const& module_opt,
   for (auto const& module : modules_) {
     if (module_opt.is_module_active(module->module_name())) {
       module->set_data_directory(import_opt.data_directory_);
-      module->import(status, registry_);
+      module->import(registry_);
     }
   }
 
@@ -129,6 +126,19 @@ void motis_instance::import(module_settings const& module_opt,
   registry_.reset();
 
   utl::verify(shared_data_.includes(SCHEDULE_DATA_KEY), "schedule not loaded");
+
+  if (import_opt.require_successful_) {
+    auto const unsuccessful_imports =
+        utl::all(modules_)  //
+        | utl::remove_if([&](auto&& m) {
+            return !module_opt.is_module_active(m->module_name()) ||
+                   m->import_successful();
+          })  //
+        | utl::transform([&](auto&& m) { return m->module_name(); })  //
+        | utl::vec();
+    utl::verify(unsuccessful_imports.empty(),
+                "some imports were not successful: {}", unsuccessful_imports);
+  }
 }
 
 void motis_instance::init_modules(module_settings const& module_opt,

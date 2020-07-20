@@ -4,75 +4,102 @@
 #include <string>
 #include <vector>
 
+#include "cista/hash.h"
+#include "cista/reflection/comparable.h"
+
+#include "motis/core/schedule/connection.h"
+
 namespace motis::path {
 
 struct source_spec {
-  enum class category { UNKNOWN, RAILWAY, SUBWAY, BUS, TRAM };
+  CISTA_COMPARABLE();
 
-  enum class type { RELATION, OSRM_ROUTE, STUB_ROUTE, RAIL_ROUTE };
+  enum class category : uint8_t {
+    UNKNOWN,
+    MULTI,
+    BUS,
+    TRAM,
+    SUBWAY,
+    RAIL,
+    SHIP
+  };
+  enum class router : uint8_t { STUB, OSRM, OSM_NET, OSM_REL };
 
-  source_spec() = default;
-  source_spec(int64_t id, category c, type t)
-      : id_(id), category_(c), type_(t) {}
-
-  std::string type_str() const {
-    switch (type_) {
-      case type::RELATION: return "RELATION";
-      case type::OSRM_ROUTE: return "OSRM_ROUTE";
-      case type::STUB_ROUTE: return "STUB_ROUTE";
-      case type::RAIL_ROUTE: return "RAIL_ROUTE";
+  std::string category_str() const {
+    switch (category_) {
+      case category::UNKNOWN: return "UNKNOWN";  // MOTIS "class 12"
+      case category::MULTI: return "MULTI";  // PATH: stub/osrm strategy
+      case category::BUS: return "BUS";
+      case category::TRAM: return "TRAM";
+      case category::SUBWAY: return "SUBWAY";
+      case category::RAIL: return "RAIL";
+      case category::SHIP: return "SHIP";
       default: return "INVALID";
     }
   }
 
-  int64_t id_;
-  category category_;
-  type type_;
-};
-
-inline bool operator==(source_spec::category const t, int const category) {
-  switch (t) {
-    case source_spec::category::RAILWAY: return category < 6;
-    default: return category >= 6;
-  };
-}
-
-template <typename Fun>
-void foreach_path_category(std::set<int> const& motis_categories, Fun&& fun) {
-  std::vector<uint32_t> railway_cat;
-  std::vector<uint32_t> bus_cat;
-  std::vector<uint32_t> subway_cat;
-  std::vector<uint32_t> tram_cat;
-  std::vector<uint32_t> unknown_cat;
-
-  for (auto const& category : motis_categories) {
-    if (category < 6) {
-      railway_cat.push_back(category);
-    } else if (category == 8) {
-      bus_cat.push_back(category);
-    } else if (category == 6) {
-      subway_cat.push_back(category);
-    } else if (category == 7) {
-      tram_cat.push_back(category);
-    } else {
-      unknown_cat.push_back(category);
+  std::string router_str() const {
+    switch (router_) {
+      case router::STUB: return "STUB";
+      case router::OSRM: return "OSRM";
+      case router::OSM_NET: return "OSM_NET";
+      case router::OSM_REL: return "OSM_REL";
+      default: return "INVALID";
     }
   }
 
-  if (!railway_cat.empty()) {
-    fun(source_spec::category::RAILWAY, railway_cat);
+  std::string str() const {
+    return category_str().append("/").append(router_str());
   }
-  if (!bus_cat.empty()) {
-    fun(source_spec::category::BUS, bus_cat);
+
+  size_t hash() const {
+    return cista::hash_combine(
+        cista::BASE_HASH,
+        static_cast<typename std::underlying_type_t<category>>(category_),
+        static_cast<typename std::underlying_type_t<router>>(router_));
   }
-  if (!subway_cat.empty()) {
-    fun(source_spec::category::SUBWAY, subway_cat);
+
+  category category_;
+  router router_;
+};
+
+template <typename Fun>
+void foreach_path_category(mcd::vector<service_class> const& classes,
+                           Fun&& fun) {
+  mcd::vector<service_class> railway_classes, bus_classes, other_classes;
+  for (auto const& clasz : classes) {
+    if (clasz == service_class::SHIP) {
+      fun(source_spec::category::SHIP,
+          mcd::vector<service_class>{service_class::SHIP});
+    } else if (clasz == service_class::BUS || clasz == service_class::COACH) {
+      bus_classes.push_back(clasz);
+    } else if (clasz == service_class::STR) {
+      fun(source_spec::category::TRAM,
+          mcd::vector<service_class>{service_class::STR});
+    } else if (clasz == service_class::U) {
+      fun(source_spec::category::SUBWAY,
+          mcd::vector<service_class>{service_class::U});
+    } else if (clasz == service_class::ICE || clasz == service_class::IC ||
+               clasz == service_class::N || clasz == service_class::RE ||
+               clasz == service_class::RB || clasz == service_class::S) {
+      railway_classes.push_back(clasz);
+    } else {
+      other_classes.push_back(clasz);  // also: AIR
+    }
   }
-  if (!tram_cat.empty()) {
-    fun(source_spec::category::TRAM, tram_cat);
+
+  if (classes.empty()) {
+    other_classes.push_back(service_class::OTHER);
   }
-  if (!unknown_cat.empty()) {
-    fun(source_spec::category::UNKNOWN, unknown_cat);
+
+  if (!railway_classes.empty()) {
+    fun(source_spec::category::RAIL, railway_classes);
+  }
+  if (!bus_classes.empty()) {
+    fun(source_spec::category::BUS, bus_classes);
+  }
+  if (!other_classes.empty()) {
+    fun(source_spec::category::UNKNOWN, other_classes);
   }
 }
 

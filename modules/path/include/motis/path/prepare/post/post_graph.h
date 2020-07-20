@@ -5,13 +5,13 @@
 
 #include "cista/hashing.h"
 
+#include "geo/box.h"
 #include "geo/polyline.h"
-#include "geo/simplify_mask.h"
 
 #include "motis/core/common/hash_helper.h"
 
 #include "motis/path/prepare/osm_path.h"
-#include "motis/path/prepare/resolve/resolved_station_seq.h"
+#include "motis/path/prepare/schedule/station_sequences.h"
 
 namespace motis::path {
 
@@ -21,20 +21,20 @@ constexpr auto const kInvalidColor = std::numeric_limits<color_t>::max();
 struct post_graph_node;
 
 struct post_segment_id {
-  post_segment_id(post_graph_node* start, color_t color)
-      : start_{start}, color_{color}, max_color_{color} {}
+  post_segment_id()
+      : front_{nullptr},
+        back_{nullptr},
+        color_{kInvalidColor},
+        max_color_{kInvalidColor} {}
 
-  post_graph_node* start_;
-  color_t color_;
-  color_t max_color_;
-};
+  post_segment_id(post_graph_node* front, post_graph_node* back,  //
+                  color_t color, color_t max_color)
+      : front_{front}, back_{back}, color_{color}, max_color_{max_color} {}
 
-struct processed_segment {
-  processed_segment() : mask_(geo::kSimplifyZoomLevels) {}
+  [[nodiscard]] bool valid() const { return front_ != nullptr; }
 
-  geo::polyline polyline_;
-  std::vector<int64_t> osm_ids_;
-  geo::simplify_mask_t mask_;
+  post_graph_node *front_, *back_;
+  color_t color_, max_color_;
 };
 
 struct post_node_id {
@@ -75,10 +75,12 @@ struct atomic_path {
       : path_(std::move(path)), from_(from), to_(to) {}
 
   std::vector<post_graph_node*> path_;
-  geo::simplify_mask_t mask_;
 
   post_graph_node* from_;
   post_graph_node* to_;
+
+  uint64_t id_{0}, hint_{0};
+  geo::box box_{};
 };
 
 struct post_graph_edge {
@@ -89,7 +91,6 @@ struct post_graph_edge {
         atomic_path_forward_(true) {}
 
   post_graph_node* other_;
-  // std::set<color_t> colors_;
   std::vector<color_t> colors_;
 
   atomic_path* atomic_path_ = nullptr;
@@ -133,7 +134,7 @@ struct post_graph_node {
 
 struct post_graph {
   post_graph() = default;
-  explicit post_graph(std::vector<resolved_station_seq> originals)
+  explicit post_graph(mcd::unique_ptr<mcd::vector<station_seq>> originals)
       : originals_{std::move(originals)} {}
 
   ~post_graph() = default;
@@ -145,14 +146,12 @@ struct post_graph {
   post_graph& operator=(post_graph&&) noexcept = default;  // NOLINT
 
   // parallel vectors!
-  std::vector<resolved_station_seq> originals_;
+  mcd::unique_ptr<mcd::vector<station_seq>> originals_;
   std::vector<std::vector<post_segment_id>> segment_ids_;
 
   // mem
   std::vector<std::unique_ptr<post_graph_node>> nodes_;
   std::vector<std::unique_ptr<atomic_path>> atomic_paths_;
-
-  std::vector<std::pair<post_graph_node*, post_graph_node*>> atomic_pairs_;
 };
 
 }  // namespace motis::path

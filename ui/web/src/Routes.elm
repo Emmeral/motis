@@ -21,7 +21,7 @@ type Route
     | StationEventsAt String Date
     | SimulationTime Date
     | TripSearchRoute
-    | RailVizPermalink Float Float Float Date
+    | RailVizPermalink Float Float Float Float Float Date
 
 
 urlParser : Parser (Route -> a) a
@@ -29,12 +29,12 @@ urlParser =
     oneOf
         [ map Connections top
         , map ConnectionDetails (s "connection" </> int)
-        , map TripDetails (s "trip" </> string </> int </> int </> string </> int </> encodedString)
-        , map StationEvents (s "station" </> string)
-        , map StationEventsAt (s "station" </> string </> date)
+        , map TripDetails (s "trip" </> encodedString </> int </> int </> encodedString </> int </> encodedString)
+        , map StationEvents (s "station" </> encodedString)
+        , map StationEventsAt (s "station" </> encodedString </> date)
         , map SimulationTime (s "time" </> date)
         , map TripSearchRoute (s "trips")
-        , map RailVizPermalink (s "railviz" </> float </> float </> float </> date)
+        , map RailVizPermalink (s "railviz" </> float </> float </> float </> float </> float </> date)
         ]
 
 
@@ -82,23 +82,23 @@ toUrl route =
 
         TripDetails station trainNr time targetStation targetTime lineId ->
             "#/trip/"
-                ++ station
+                ++ Http.encodeUri station
                 ++ "/"
                 ++ toString trainNr
                 ++ "/"
                 ++ toString time
                 ++ "/"
-                ++ targetStation
+                ++ Http.encodeUri targetStation
                 ++ "/"
                 ++ toString targetTime
                 ++ "/"
                 ++ Http.encodeUri lineId
 
         StationEvents stationId ->
-            "#/station/" ++ stationId
+            "#/station/" ++ Http.encodeUri stationId
 
         StationEventsAt stationId date ->
-            "#/station/" ++ stationId ++ "/" ++ toString (unixTime date)
+            "#/station/" ++ Http.encodeUri stationId ++ "/" ++ toString (unixTime date)
 
         SimulationTime time ->
             "#/time/" ++ dateToUrl time
@@ -106,8 +106,14 @@ toUrl route =
         TripSearchRoute ->
             "#/trips/"
 
-        RailVizPermalink lat lng zoom date ->
-            "#/railviz/" ++ toString lat ++ "/" ++ toString lng ++ "/" ++ toString zoom ++ "/" ++ toString (unixTime date)
+        RailVizPermalink lat lng zoom bearing pitch date ->
+            "#/railviz/"
+                ++ toString lat ++ "/"
+                ++ toString lng ++ "/"
+                ++ toString zoom ++ "/"
+                ++ toString bearing ++ "/"
+                ++ toString pitch ++ "/"
+                ++ toString (unixTime date)
 
 
 tripDetailsRoute : TripId -> Route

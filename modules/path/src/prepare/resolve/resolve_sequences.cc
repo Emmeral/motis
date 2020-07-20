@@ -5,7 +5,10 @@
 
 #include "boost/algorithm/string/join.hpp"
 
+#include "utl/get_or_create.h"
 #include "utl/parallel_for.h"
+#include "utl/progress_tracker.h"
+#include "utl/to_vec.h"
 #include "utl/verify.h"
 
 #include "motis/core/common/logging.h"
@@ -33,13 +36,13 @@ struct result_cache {
 };
 
 struct plan_executor {
-  explicit plan_executor(processing_plan pp,
-                         routing_strategy const* stub_strategy)
+  plan_executor(processing_plan pp, routing_strategy const* stub_strategy)
       : pp_{std::move(pp)},
         stub_strategy_{stub_strategy},
         open_seq_task_deps_(pp_.seq_tasks_.size()),
         open_part_task_deps_(pp_.part_tasks_.size()),
-        result_caches_(pp_.part_tasks_.size()) {
+        result_caches_(pp_.part_tasks_.size()),
+        progress_tracker_{utl::get_active_progress_tracker()} {
     for (auto i = 0UL; i < pp_.seq_tasks_.size(); ++i) {
       open_seq_task_deps_[i] = pp_.seq_tasks_[i].part_dependencies_.size();
     }
@@ -51,6 +54,7 @@ struct plan_executor {
   void execute() {
     ml::scoped_timer t{"resolve_sequences"};
     start_ = sc::steady_clock::now();
+    progress_tracker_->in_high(pp_.part_task_queue_.size());
 
     utl::parallel_for_run(
         pp_.part_task_queue_.size(), [&](auto const queue_idx) {
@@ -127,12 +131,12 @@ struct plan_executor {
     auto stop_sr = sc::steady_clock::now();
 
     stats_.add_seq_timing(
-        {*task.seq_->categories_.begin(),
+        {*task.seq_->classes_.begin(),
          sc::duration_cast<sc::microseconds>(stop_sg - start_sg).count(),
          sc::duration_cast<sc::microseconds>(stop_sr - start_sr).count()});
 
-    std::vector<sequence_info> infos;
-    std::vector<osm_path> paths{task.seq_->station_ids_.size() - 1};
+    mcd::vector<sequence_info> infos;
+    mcd::vector<osm_path> paths{task.seq_->station_ids_.size() - 1};
     for (auto const& [edge, new_path] : resolve_sequence(shortest_path)) {
       auto station_idx = edge->from_->station_idx_;
       if (station_idx == paths.size()) {
@@ -148,26 +152,27 @@ struct plan_executor {
               ? stub_strategy_
               : pp_.part_tasks_.at(edge->part_task_idx_).key_.strategy_;
       infos.emplace_back(station_idx, size_before, path.size(),
-                         s->source_spec().type_str());  // XXX
+                         edge->from_->station_idx_ != edge->to_->station_idx_,
+                         s->source_spec_);
     }
 
     for (auto& path : paths) {
       path.unique();
       utl::verify(path.size() != 0, "resolve_sequences: empty path");
-
-      if (path.size() == 1) {
-        path.polyline_.push_back(path.polyline_.back());
-        path.osm_node_ids_.push_back(path.osm_node_ids_.back());
-      }
+      path.ensure_line();
     }
 
     utl::verify(task.seq_->station_ids_.size() == paths.size() + 1,
                 "station_ids / paths size mismatch ({} != {})",
                 task.seq_->station_ids_.size(), paths.size() + 1);
 
-    std::lock_guard<std::mutex> lock(resolved_seq_mutex_);
-    resolved_seq_.emplace_back(task.seq_->station_ids_, task.motis_categories_,
-                               std::move(paths), std::move(infos));
+    auto const lock = std::lock_guard{resolved_seq_mutex_};
+
+    auto cpy = *task.seq_;
+    cpy.classes_ = task.classes_;  // maybe subset!
+    cpy.paths_ = std::move(paths);
+    cpy.sequence_infos_ = std::move(infos);
+    resolved_seq_.emplace_back(std::move(cpy));
   }
 
   seq_graph build_seq_graph(seq_task const& task) {
@@ -198,7 +203,7 @@ struct plan_executor {
       }
 
       auto& cache = result_caches_.at(part_task_idx);
-      std::unique_lock<std::mutex> lock(cache->mutex_, std::defer_lock);
+      auto lock = std::unique_lock{cache->mutex_, std::defer_lock};
       if (!maybe_defer) {
         lock.lock();
       } else if (!lock.try_lock()) {
@@ -257,11 +262,8 @@ struct plan_executor {
         std::count_if(begin(result_caches_), end(result_caches_),
                       [](auto const& r) { return r != nullptr; });
 
-    std::clog << '\0'
-              << static_cast<unsigned>(100.0 *
-                                       static_cast<float>(curr_part_task) /
-                                       pp_.part_task_queue_.size())
-              << '\0';
+    progress_tracker_->update(curr_part_task);
+
     std::clog << "resolve_sequences [" << microsecond_fmt{t_curr} << " | est. "
               << microsecond_fmt{t_est} << "] ("  //
               << std::setw(7) << curr_part_task << "/"  //
@@ -298,14 +300,15 @@ struct plan_executor {
   std::vector<std::unique_ptr<result_cache>> result_caches_;
 
   std::mutex resolved_seq_mutex_;
-  std::vector<resolved_station_seq> resolved_seq_;
+  mcd::vector<station_seq> resolved_seq_;
 
   sc::time_point<sc::steady_clock> start_;
   execution_stats stats_;
+  utl::progress_tracker_ptr progress_tracker_;
 };
 
-std::vector<resolved_station_seq> resolve_sequences(
-    std::vector<station_seq> const& sequences, path_routing& routing) {
+mcd::vector<station_seq> resolve_sequences(
+    mcd::vector<station_seq> const& sequences, path_routing& routing) {
   plan_executor executor{make_processing_plan(routing, sequences),
                          routing.get_stub_strategy()};
   executor.execute();

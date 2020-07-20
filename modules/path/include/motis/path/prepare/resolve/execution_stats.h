@@ -40,39 +40,39 @@ struct strategy_timing {
 };
 
 struct seq_timing {
-  seq_timing(int min_cat, int64_t graph_mys, int64_t route_mys)
-      : min_cat_{min_cat}, graph_mys_{graph_mys}, route_mys_{route_mys} {}
+  seq_timing(service_class min_clasz, int64_t graph_mys, int64_t route_mys)
+      : min_clasz_{min_clasz}, graph_mys_{graph_mys}, route_mys_{route_mys} {}
 
-  int min_cat_;
+  service_class min_clasz_;
   int64_t graph_mys_;
   int64_t route_mys_;
 };
 
 struct execution_stats {
   void add_part_timing(strategy_timing t) {
-    std::lock_guard<std::mutex> lock(buffer_mutex_);
+    auto const lock = std::lock_guard{buffer_mutex_};
     part_timings_buffer_.push_back(t);
   }
 
   void add_path_timing(strategy_timing t) {
-    std::lock_guard<std::mutex> lock(buffer_mutex_);
+    auto const lock = std::lock_guard{buffer_mutex_};
     path_timings_buffer_.push_back(t);
   }
 
   void add_seq_timing(seq_timing t) {
-    std::lock_guard<std::mutex> lock(buffer_mutex_);
+    auto const lock = std::lock_guard{buffer_mutex_};
     seq_timings_buffer_.push_back(t);
   }
 
   void dump_stats() {
-    std::lock_guard<std::mutex> lock(main_mutex_);
+    auto const lock = std::lock_guard{main_mutex_};
     read_buffers();
 
     fmt::memory_buffer out;
 
     format_headline(out);
     for (auto& [key, v] : main_part_timings_) {
-      fmt::format_to(out, "[PART] {:>9} {} ", key.strategy_->label(),
+      fmt::format_to(out, "[PART] {:>9} {} ", key.strategy_->source_spec_.str(),
                      key.between_stations_ ? 'B' : 'W');
       format_timing_summary(out, v);
     }
@@ -88,7 +88,7 @@ struct execution_stats {
     }
     format_headline(out);
     for (auto& [key, v] : main_path_timings_) {
-      fmt::format_to(out, "[PATH] {:>9} {} ", key.strategy_->label(),
+      fmt::format_to(out, "[PATH] {:>9} {} ", key.strategy_->source_spec_.str(),
                      key.between_stations_ ? 'B' : 'W');
       format_timing_summary(out, v);
     }
@@ -160,7 +160,7 @@ struct execution_stats {
 
 private:
   void read_buffers() {
-    std::lock_guard<std::mutex> lock{buffer_mutex_};
+    auto const lock = std::lock_guard{buffer_mutex_};
     auto const read_strategy_buffer = [&](auto& buf, auto& map) {
       std::sort(begin(buf), end(buf),
                 [](auto const& a, auto const& b) { return a.key_ < b.key_; });
@@ -180,15 +180,20 @@ private:
     read_strategy_buffer(part_timings_buffer_, main_part_timings_);
     read_strategy_buffer(path_timings_buffer_, main_path_timings_);
 
-    std::sort(
-        begin(seq_timings_buffer_), end(seq_timings_buffer_),
-        [](auto const& a, auto const& b) { return a.min_cat_ < b.min_cat_; });
+    std::sort(begin(seq_timings_buffer_), end(seq_timings_buffer_),
+              [](auto const& a, auto const& b) {
+                return a.min_clasz_ < b.min_clasz_;
+              });
     utl::equal_ranges_linear(
         seq_timings_buffer_,
-        [](auto const& a, auto const& b) { return a.min_cat_ == b.min_cat_; },
+        [](auto const& a, auto const& b) {
+          return a.min_clasz_ == b.min_clasz_;
+        },
         [&](auto lb, auto ub) {
-          auto& graph_vec = seq_graph_timings_[lb->min_cat_];
-          auto& route_vec = seq_route_timings_[lb->min_cat_];
+          auto& graph_vec =
+              seq_graph_timings_[static_cast<service_class_t>(lb->min_clasz_)];
+          auto& route_vec =
+              seq_route_timings_[static_cast<service_class_t>(lb->min_clasz_)];
           for (auto it = lb; it != ub; ++it) {
             graph_vec.push_back(it->graph_mys_);
             route_vec.push_back(it->route_mys_);

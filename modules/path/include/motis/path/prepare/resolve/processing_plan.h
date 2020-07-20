@@ -6,6 +6,8 @@
 
 #include "motis/core/common/hash_helper.h"
 
+#include "motis/core/schedule/connection.h"
+
 namespace motis::path {
 
 struct path_routing;
@@ -19,11 +21,11 @@ constexpr auto const kInvalidPartTask =
     std::numeric_limits<part_task_idx_t>::max();
 
 struct seq_task {
-  seq_task(station_seq const* seq, std::vector<uint32_t> motis_categories)
-      : seq_{seq}, motis_categories_{std::move(motis_categories)} {}
+  seq_task(station_seq const* seq, mcd::vector<service_class> classes)
+      : seq_{seq}, classes_{std::move(classes)} {}
 
   station_seq const* seq_;
-  std::vector<uint32_t> motis_categories_;
+  mcd::vector<service_class> classes_;
 
   std::vector<part_task_idx_t> part_dependencies_;
 };
@@ -51,6 +53,6 @@ struct processing_plan {
 };
 
 processing_plan make_processing_plan(path_routing&,
-                                     std::vector<station_seq> const&);
+                                     mcd::vector<station_seq> const&);
 
 }  // namespace motis::path

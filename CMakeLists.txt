@@ -19,6 +19,12 @@ if (APPLE)
   # tell ranlib to ignore empty compilation units
   set(CMAKE_C_ARCHIVE_FINISH   "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
   set(CMAKE_CXX_ARCHIVE_FINISH "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
+
+  # Allow deprecated auto_ptr (e.g. in luabind)
+  add_definitions(-D_LIBCPP_ENABLE_CXX17_REMOVED_AUTO_PTR)
+
+  # Silence linking warnings.
+  add_compile_options(-fvisibility-inlines-hidden -fvisibility=hidden)
 endif()
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -79,9 +85,9 @@ add_definitions(/DBOOST_ASIO_DISABLE_CONCEPTS=1)  # fixes issue with Boost 1.72.
 ################################
 # Dependencies
 ################################
+set(Boost_USE_STATIC_LIBS ON)
+set(Boost_USE_MULTITHREADED ON)
 if (MSVC)
-  set(Boost_USE_STATIC_LIBS ON)
-  set(Boost_USE_MULTITHREADED ON)
   set(Boost_USE_STATIC_RUNTIME ON)
 endif()
 find_package(Boost 1.70.0 REQUIRED COMPONENTS system filesystem regex program_options thread)
@@ -168,6 +174,8 @@ else()
   string(REPLACE " " ";" modules "${MODULES}")
 endif()
 
+add_subdirectory(libs)
+
 set(module-targets "")
 set(module-test-files "")
 foreach(module ${modules})
@@ -221,7 +229,7 @@ target_link_libraries(motis-test
   ianatzdb-res
   ${Boost_LIBRARIES}
 )
-target_link_libraries(motis-test gmock gtest gtest_main)
+target_link_libraries(motis-test gtest gtest_main)
 
 
 ################################

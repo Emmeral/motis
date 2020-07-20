@@ -16,6 +16,7 @@
 #include "cista/mmap.h"
 
 #include "utl/parser/file.h"
+#include "utl/progress_tracker.h"
 #include "utl/verify.h"
 
 #include "motis/core/common/logging.h"
@@ -53,6 +54,9 @@ schedule_ptr load_schedule(loader_options const& opt,
     return read_graph(serialized_file_path, schedule_buf, opt.read_graph_mmap_);
   }
 
+  // ensure there is an active progress tracker (e.g. for test cases)
+  utl::get_active_progress_tracker_or_activate("schedule");
+
   if (fs::is_regular_file(binary_schedule_file)) {
     auto buf = file(binary_schedule_file.string().c_str(), "r").content();
     auto sched = build_graph(GetSchedule(buf.buf_), opt);
@@ -66,6 +70,7 @@ schedule_ptr load_schedule(loader_options const& opt,
         FlatBufferBuilder builder;
         parser->parse(opt.dataset_, builder);
         if (opt.write_serialized_) {
+          utl::get_active_progress_tracker()->status("Write Schedule File");
           utl::file(binary_schedule_file.string().c_str(), "w+")
               .write(builder.GetBufferPointer(), builder.GetSize());
         }

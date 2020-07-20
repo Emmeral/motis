@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include "utl/to_vec.h"
+
 #include "motis/path/prepare/schedule/station_sequences.h"
 #include "motis/path/prepare/seq/seq_graph.h"
 #include "motis/path/prepare/strategy/routing_strategy.h"
@@ -110,12 +112,14 @@ struct seq_graph_builder {
     curr_strategy_ = stub_strategy;
 
     for (auto i = 0UL; i < seq_.station_ids_.size() - 1; ++i) {  // departures
-      auto ref = stub_strategy->close_nodes(seq_.station_ids_.at(i)).front();
+      auto ref =
+          stub_strategy->close_nodes(seq_.station_ids_.at(i).str()).front();
       station_departures_.at(i).push_back(
           graph_.nodes_.emplace_back(std::make_unique<seq_node>(i, ref)).get());
     }
     for (auto i = 1UL; i < seq_.station_ids_.size(); ++i) {  // arrivals
-      auto ref = stub_strategy->close_nodes(seq_.station_ids_.at(i)).front();
+      auto ref =
+          stub_strategy->close_nodes(seq_.station_ids_.at(i).str()).front();
       station_arrivals_.at(i).push_back(
           graph_.nodes_.emplace_back(std::make_unique<seq_node>(i, ref)).get());
     }

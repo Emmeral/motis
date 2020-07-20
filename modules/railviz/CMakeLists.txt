@@ -12,5 +12,8 @@ target_link_libraries(motis-railviz
   ${Boost_SYSTEM_LIBRARY}
   motis-module
   motis-core
+  motis-libpath
+  tiles
+  geo
 )
 target_compile_options(motis-railviz PRIVATE ${MOTIS_CXX_FLAGS})

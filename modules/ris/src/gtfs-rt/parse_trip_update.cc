@@ -5,6 +5,8 @@
 #include "boost/date_time/gregorian/gregorian_types.hpp"
 #include "boost/date_time/posix_time/posix_time.hpp"
 
+#include "utl/verify.h"
+
 #include "motis/core/common/date_time_util.h"
 #include "motis/core/common/logging.h"
 #include "motis/core/schedule/event.h"
@@ -122,15 +124,13 @@ void collect_additional_events(
   auto stop_count = 0;
 
   for (auto const& stu : trip_update.stop_time_update()) {
-    auto stop_id = parse_stop_id(stu.stop_id());
-
     if (known_skips != nullptr) {
       update_ctx.is_stop_skip_new_.resize(stop_count + 1);
     }
 
     evt base;
     base.line_id_ = line_id;
-    base.stop_id_ = stop_id;
+    base.stop_id_ = stu.stop_id();
     base.seq_no_ = stu.stop_sequence();
     // all stops need to be given to create the trip
     base.stop_idx_ = stop_count;
@@ -400,6 +400,9 @@ void initialize_update_context(
   } else {
     return;
   }
+
+  utl::verify(update_ctx.trip_ != nullptr,
+              "GTFS trip update: unkown trip \"{}\"", update_ctx.trip_id_);
 
   update_ctx.is_stop_skip_new_.resize(
       (update_ctx.is_new_addition_ ||

@@ -17,14 +17,14 @@ namespace motis::path {
 
 schedule_wrapper::schedule_wrapper(std::string const& schedule_path) {
   auto sched_file = fs::path(schedule_path);
-  if (!fs::is_regular_file(sched_file)) {
-    throw std::runtime_error("cannot open schedule.raw");
-  }
+  utl::verify(fs::is_regular_file(sched_file),
+              "schedule_wrapper: cannot open schedule.raw at {}",
+              schedule_path);
 
   schedule_buffer_ = utl::file(sched_file.string().c_str(), "r").content();
 }
 
-std::vector<station_seq> schedule_wrapper::load_station_sequences() const {
+mcd::vector<station_seq> schedule_wrapper::load_station_sequences() const {
   return motis::path::load_station_sequences(
       GetSchedule(schedule_buffer_.buf_));
 }

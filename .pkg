@@ -1,15 +1,15 @@
 [address-typeahead]
   url=git@github.com:motis-project/address-typeahead.git
   branch=master
-  commit=7d4b514b16179854ed52ef9ebcc28a3c6f6ab7d5
+  commit=f047113b0197d413663d78b0c40129d467d628a0
 [cista]
   url=git@github.com:felixguendling/cista.git
   branch=master
-  commit=474dc26ce5adc74afa01a2f18a62a19803cfbbb4
+  commit=3b71fa46f932aa343d5cea477f5a3b881d1971aa
 [conf]
   url=git@github.com:motis-project/conf.git
   branch=master
-  commit=7897a6cd02ad9a47ff1c36722354e3638fb17000
+  commit=045a78e9a9d08145f49b90d2886b541404442235
 [ctx]
   url=git@github.com:motis-project/ctx.git
   branch=master
@@ -17,7 +17,7 @@
 [date]
   url=git@github.com:motis-project/date.git
   branch=master
-  commit=46fdb71a0479e178e8dcc1117d886c887c84d74d
+  commit=6de941079a68b29753c430fb19c3b110c8499c97
 [flatbuffers]
   url=git@github.com:motis-project/flatbuffers.git
   branch=motis
@@ -29,7 +29,7 @@
 [geo]
   url=git@github.com:motis-project/geo.git
   branch=master
-  commit=ae9aeed6688442b9651df0c44dbd3751fe510394
+  commit=65d49b97822216bddae6131210c6899edbfb9bb8
 [googletest]
   url=git@github.com:motis-project/googletest.git
   branch=master
@@ -41,7 +41,7 @@
 [miniz]
   url=git@github.com:motis-project/miniz.git
   branch=master
-  commit=ddafe51dcd2a4df95fc74c7401bc68f04ab4bebd
+  commit=1edbdece9d71dc65c6ff405572ee37cbdcef7af4
 [net]
   url=git@github.com:motis-project/net.git
   branch=master
@@ -49,7 +49,7 @@
 [osrm-backend]
   url=git@github.com:motis-project/osrm-backend.git
   branch=motis
-  commit=d42194c8673899c606111469908bd30aceed246e
+  commit=2a68bf1242aab63ad6dc96b5c15eb064ac8e55a9
 [ppr]
   url=git@github.com:motis-project/ppr.git
   branch=master
@@ -72,9 +72,9 @@
   commit=e05f1ce0bd4a3cad4c532317444bf136f291e6bd
 [tiles]
   url=git@github.com:motis-project/tiles.git
-  branch=master
-  commit=41b646cd3ca0b647de6648b8f49ec98496e225b6
+  branch=pristine
+  commit=2812703fc1f10c9b75167f4245f30c809839bcaf
 [utl]
   url=git@github.com:motis-project/utl.git
   branch=master
-  commit=aa6ea0a16affc47e8515fefcf1f4365e22b95ed7
+  commit=80a0cf23cebe753736f26ba9dbe08e892e429b45

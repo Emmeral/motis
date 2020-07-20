@@ -14,6 +14,7 @@ jobs:
     runs-on: windows-latest
 
     strategy:
+      fail-fast: false
       matrix:
         mode: [Debug, Release]
 
@@ -64,8 +65,9 @@ jobs:
           .\build\motis
           --mode test
           --import.paths base/loader/test_resources/hrd_schedules/single-ice
-          --dataset.begin 20151111
+          --dataset.begin 20151004
           --dataset.write_serialized false
+          --exclude_modules address osrm parking path ppr tiles
 
       - name: Run Tests
         run: .\build\motis-test.exe
@@ -91,6 +93,7 @@ jobs:
         run: |
           echo d | xcopy /s .\deps\osrm-backend\profiles .\osrm-profiles
           echo d | xcopy /s .\deps\ppr\profiles .\ppr-profiles
+          echo d | xcopy /s .\deps\tiles\profile .\tiles-profiles
 
       - name: Create Distribution
         if: matrix.mode == 'Release'
@@ -99,6 +102,7 @@ jobs:
           .\build\motis.exe
           .\osrm-profiles
           .\ppr-profiles
+          .\tiles-profiles
           .\ui\web
 
       - name: Upload Distribution
