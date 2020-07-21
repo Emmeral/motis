@@ -27,6 +27,8 @@ struct search_query {
   lower_bounds_type lb_type{lower_bounds_type::CG};
   // only set if lower_bounds_type::CSA is used
   motis::csa::csa_timetable const* csa_timetable{nullptr};
+  // true if the response shall contain extended stats about the lower bounds
+  bool extended_lb_stats_{false};
 };
 
 }  // namespace motis::routing

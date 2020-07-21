@@ -1,7 +1,9 @@
 #pragma once
 
-#include <motis/core/schedule/nodes.h>
 #include <cstdint>
+#include "motis/core/schedule/schedule.h"
+#include "motis/core/schedule/nodes.h"
+#include "motis/routing/lower_bounds/lower_bounds_stats.h"
 
 namespace motis::routing {
 
@@ -15,6 +17,8 @@ public:
 
   virtual interchanges_t transfers_from_node(node const* n) = 0;
   virtual bool is_valid_transfer_amount(interchanges_t amount) = 0;
+
+  lower_bounds_stats get_stats(const schedule& sched);
 
   virtual ~lower_bounds() = default;
 };

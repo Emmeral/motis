@@ -37,6 +37,17 @@ struct statistics {
   uint64_t labels_to_journey_{};
   uint64_t interval_extensions_{};
 
+  uint64_t average_lb_travel_time_{};
+  /**
+   * The average transfer lower bounds for all nodes.
+   * The average shall be multiplied by 100  before setting to have more
+   * precision as the statistics do not support floating point values
+   */
+  uint64_t average_lb_transfers_{};
+
+  uint64_t lb_invalid_time_nodes_count_{};
+  uint64_t lb_invalid_transfer_nodes_count_{};
+
   friend flatbuffers::Offset<Statistics> to_fbs(
       flatbuffers::FlatBufferBuilder& fbb, char const* category,
       statistics const& s) {
@@ -73,6 +84,9 @@ struct statistics {
     add_entry("travel_time_lb", s.travel_time_lb_);
     add_entry("total_lb", s.total_lb);
     add_entry("interval_extensions", s.interval_extensions_);
+
+    add_entry("average_lb_travel_time", s.average_lb_travel_time_);
+    add_entry("average_lb_transfers", s.average_lb_transfers_);
 
     return CreateStatistics(fbb, fbb.CreateString(category),
                             fbb.CreateVectorOfSortedTables(&stats));

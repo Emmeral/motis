@@ -35,6 +35,8 @@ private:
   std::vector<std::unique_ptr<memory>> mem_pool_;
   lower_bounds_type lb_type_{lower_bounds_type::CG};
 
+  bool extended_lb_stats_{false};
+
   std::unique_ptr<csa::csa_timetable> csa_timetable_;
 
 };

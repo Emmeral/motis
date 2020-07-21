@@ -40,6 +40,9 @@ routing::routing() : module("Routing", "routing") {
 
   param(lb_type_, "lb_type",
         "Select the method to calculate lower bounds (cg|csa|none)");
+  param(extended_lb_stats_, "extended_lb_stats",
+        "Set if extended stats about the lower bounds shall be calculated. The "
+        "processing of a query will need more time if set");
 }
 
 routing::~routing() = default;
@@ -67,6 +70,7 @@ msg_ptr routing::route(msg_ptr const& msg) {
   mem_retriever mem(mem_pool_mutex_, mem_pool_, LABEL_STORE_START_SIZE);
   query.mem_ = &mem.get();
 
+  query.extended_lb_stats_ = extended_lb_stats_;
   query.lb_type = lb_type_;
   if (lb_type_ == lower_bounds_type::CSA) {
     query.csa_timetable = csa_timetable_.get();
