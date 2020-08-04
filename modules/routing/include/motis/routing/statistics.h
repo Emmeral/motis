@@ -87,6 +87,8 @@ struct statistics {
 
     add_entry("average_lb_travel_time", s.average_lb_travel_time_);
     add_entry("average_lb_transfers", s.average_lb_transfers_);
+    add_entry("lb_invalid_time_nodes_count", s.lb_invalid_time_nodes_count_);
+    add_entry("lb_invalid_transfer_nodes_count", s.lb_invalid_transfer_nodes_count_);
 
     return CreateStatistics(fbb, fbb.CreateString(category),
                             fbb.CreateVectorOfSortedTables(&stats));
