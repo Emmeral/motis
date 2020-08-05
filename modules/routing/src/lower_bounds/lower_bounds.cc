@@ -27,14 +27,13 @@ lower_bounds_stats motis::routing::lower_bounds::get_stats(
   };
 
   for (auto& n : stations_nodes) {
-    process_node(n.get());
-    for (auto& rn : n->route_nodes_) {
-      process_node(rn.get());
-    }
+    process_node(n.get());  // only process stations as route nodes may alter
+                            // the statistics
   }
 
   double avg_time = static_cast<double>(sum_times) / valid_time_count;
-  double avg_transfers = static_cast<double>(sum_transfers) / valid_transfers_count;
+  double avg_transfers =
+      static_cast<double>(sum_transfers) / valid_transfers_count;
 
   return lower_bounds_stats{avg_time, avg_transfers, invalid_time_count,
                             invalid_transfers_count};
