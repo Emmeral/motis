@@ -18,16 +18,16 @@ void lower_bounds_const_graph::calculate_timing() { travel_time_.run(); }
 
 void lower_bounds_const_graph::calculate_transfers() { transfers_.run(); }
 
-lower_bounds::time_diff_t lower_bounds_const_graph::time_from_node(node const* n) {
+lower_bounds::time_diff_t lower_bounds_const_graph::time_from_node(node const* n) const {
   return travel_time_[n];
 }
-bool lower_bounds_const_graph::is_valid_time_diff(time_diff_t time) {
+bool lower_bounds_const_graph::is_valid_time_diff(time_diff_t time) const {
   return travel_time_.is_reachable(time);
 }
-lower_bounds::interchanges_t lower_bounds_const_graph::transfers_from_node(node const* n) {
+lower_bounds::interchanges_t lower_bounds_const_graph::transfers_from_node(node const* n) const {
   return transfers_[n];
 }
-bool lower_bounds_const_graph::is_valid_transfer_amount(interchanges_t amount) {
+bool lower_bounds_const_graph::is_valid_transfer_amount(interchanges_t amount) const {
   return transfers_.is_reachable(amount);
 }
 

@@ -14,7 +14,6 @@ struct statistics {
   statistics() = default;
   explicit statistics(uint64_t travel_time_lb)
       : travel_time_lb_{travel_time_lb} {}
-
   bool max_label_quit_{};
   std::size_t labels_created_{};
   uint64_t labels_popped_{};

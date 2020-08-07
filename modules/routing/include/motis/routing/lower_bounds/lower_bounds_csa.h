@@ -10,12 +10,17 @@ class lower_bounds_csa : public lower_bounds {
 
 public:
   lower_bounds_csa(search_query const& routing_query, search_dir direction);
-  time_diff_t time_from_node(node const* n) override;
-  bool is_valid_time_diff(time_diff_t diff) override;
-  interchanges_t transfers_from_node(node const* n) override;
-  bool is_valid_transfer_amount(interchanges_t amount) override;
+  time_diff_t time_from_node(node const* n) const override;
+  bool is_valid_time_diff(time_diff_t diff) const override;
+  interchanges_t transfers_from_node(node const* n) const override;
+  bool is_valid_transfer_amount(interchanges_t amount) const override;
 
-  void calculate();
+  /**
+   * Calculates the lower bounds for all nodes.
+   * @return true if the calculation was successful and the target could be
+   * reached and false if the target is unreachable
+   */
+  bool calculate();
 
 private:
   static constexpr lower_bounds::interchanges_t INVALID_INTERCHANGE_AMOUNT =
@@ -28,10 +33,11 @@ private:
     interchanges_t transfer_amount_{INVALID_INTERCHANGE_AMOUNT};
 
     /**
-     * Updates the combined bound to be the the minimum of itself and the given bound
+     * Updates the combined bound to be the the minimum of itself and the given
+     * bound
      * @param bound the other bound with potential updates
      */
-    void update_with(const combined_bound& bound){
+    void update_with(const combined_bound& bound) {
       time_diff_ = std::min(time_diff_, bound.time_diff_);
       transfer_amount_ = std::min(transfer_amount_, bound.transfer_amount_);
     }

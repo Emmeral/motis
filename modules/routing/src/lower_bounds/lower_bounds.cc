@@ -1,7 +1,7 @@
 #include "motis/routing/lower_bounds/lower_bounds.h"
 
 lower_bounds_stats motis::routing::lower_bounds::get_stats(
-    const schedule& sched) {
+    const schedule& sched) const {
 
   auto& stations_nodes = sched.station_nodes_;
   uint64_t sum_times{0L}, sum_transfers{0L};

@@ -24,10 +24,10 @@ public:
           additional_travel_time_edges,
       mcd::hash_map<unsigned, std::vector<simple_edge>> const&
           additional_transfers_edges);
-  time_diff_t time_from_node(node const* n) override;
-  bool is_valid_time_diff(time_diff_t time) override;
-  interchanges_t transfers_from_node(node const* n) override;
-  bool is_valid_transfer_amount(interchanges_t amount) override;
+  time_diff_t time_from_node(node const* n) const override;
+  bool is_valid_time_diff(time_diff_t time) const override;
+  interchanges_t transfers_from_node(node const* n) const override;
+  bool is_valid_transfer_amount(interchanges_t amount) const override;
 
   void calculate_timing();
   void calculate_transfers();

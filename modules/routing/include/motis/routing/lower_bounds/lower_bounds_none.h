@@ -16,10 +16,10 @@ class lower_bounds_none : public lower_bounds {
 
 public:
   lower_bounds_none();
-  time_diff_t time_from_node(node const* n) override;
-  bool is_valid_time_diff(time_diff_t time) override;
-  interchanges_t transfers_from_node(node const* n) override;
-  bool is_valid_transfer_amount(interchanges_t amount) override;
+  time_diff_t time_from_node(node const* n) const override;
+  bool is_valid_time_diff(time_diff_t time) const override;
+  interchanges_t transfers_from_node(node const* n) const override;
+  bool is_valid_transfer_amount(interchanges_t amount) const override;
 
 private:
 };
