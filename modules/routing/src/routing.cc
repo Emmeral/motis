@@ -28,6 +28,8 @@
 
 #include "motis/csa/build_csa_timetable.h"
 
+#include "flatbuffers/flatbuffers.h"
+
 // 64MB default start size
 constexpr auto LABEL_STORE_START_SIZE = 64 * 1024 * 1024;
 
@@ -52,6 +54,9 @@ void routing::init(motis::module::registry& reg) {
   reg.register_op("/routing",
                   [this](msg_ptr const& msg) { return route(msg); });
   reg.register_op("/trip_to_connection", &routing::trip_to_connection);
+
+  reg.register_op("/routing/lower_bounds",
+                  [this](msg_ptr const& msg) { return lower_bounds(msg); });
 
   if (lb_type_ == lower_bounds_type::CSA) {
     LOG(logging::info) << "Building CSA timetable for routing";
@@ -148,6 +153,61 @@ msg_ptr routing::trip_to_connection(msg_ptr const& msg) {
       to_connection(
           fbb, output::labels_to_journey(sched, &labels[i], search_dir::FWD))
           .Union());
+  return make_msg(fbb);
+}
+
+msg_ptr routing::lower_bounds(msg_ptr const& msg) {
+  auto const req = motis_content(RoutingRequest, msg);
+  auto const& sched = get_schedule();
+  auto query = build_query(sched, req);
+
+  query.extended_lb_stats_ = extended_lb_stats_;
+  query.lb_type = lb_type_;
+  if (lb_type_ == lower_bounds_type::CSA) {
+    query.csa_timetable = csa_timetable_.get();
+  }
+
+  std::vector<int> goal_ids{};
+
+  if (query.use_dest_metas_) {
+
+    auto const& goals = query.sched_->stations_[query.to_->id_]->equivalent_;
+    for (auto const& goal : goals) {
+      goal_ids.emplace_back(goal->index_);
+    }
+  } else {
+    goal_ids.emplace_back(query.to_->id_);
+  }
+
+  auto dir = req->search_dir() == SearchDir_Forward ? search_dir::FWD
+                                                    : search_dir::BWD;
+  auto const& lbs_result =
+      lower_bounds::get_lower_bounds_for_query(query, goal_ids, dir);
+  auto const& lbs = lbs_result.bounds_;
+
+  message_creator fbb;
+
+  std::vector<flatbuffers::Offset<LowerBoundEntry>> offsets;
+  for (auto const& station : query.sched_->stations_) {
+    auto const& node = query.sched_->station_nodes_[station->index_].get();
+
+    auto time = lbs->time_from_node(node);
+    bool time_valid = lbs->is_valid_time_diff(time);
+
+    auto interchanges = lbs->transfers_from_node(node);
+    bool interchanges_valid = lbs->is_valid_transfer_amount(interchanges);
+
+    auto eva_nr = station->eva_nr_.str();
+
+    auto offset =
+        CreateLowerBoundEntry(fbb, fbb.CreateString(eva_nr), time, time_valid,
+                              interchanges, interchanges_valid);
+
+    offsets.emplace_back(offset);
+  }
+
+  auto response = CreateLowerBoundsResponse(fbb, fbb.CreateVector(offsets));
+  fbb.create_and_finish(MsgContent_LowerBoundsResponse, response.Union());
   return make_msg(fbb);
 }
 
