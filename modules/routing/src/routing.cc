@@ -168,6 +168,7 @@ msg_ptr routing::lower_bounds(msg_ptr const& msg) {
   query.lb_type = lb_type_;
   if (lb_type_ == lower_bounds_type::CSA) {
     query.csa_timetable = csa_timetable_.get();
+    query.csa_timetable_ignored_restrictions = csa_timetable_ignored_restrictions_.get();
   }
 
   std::vector<int> goal_ids{};
