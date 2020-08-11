@@ -78,7 +78,8 @@ bool lower_bounds_csa::calculate() {
     csa::csa_query backwards_query(to_id, from_id, backwards_interval, notDir);
 
     // use a different timetable for the backward search because otherwise
-    // "infinite" lb are produced for stations where you can't enter or exit (Hildesheim Gbr)
+    // "infinite" lb are produced for stations where you can't enter or exit
+    // (Hildesheim Gbr)
     auto const backwards_times = motis::csa::get_arrival_times(
         *routing_query_.csa_timetable_ignored_restrictions, backwards_query);
 
@@ -87,9 +88,9 @@ bool lower_bounds_csa::calculate() {
       combined_bound b = get_best_bound_for(arrival_time, backwards_times[i]);
       bounds_[i].update_with(b);
     }
-
-    return true;
   }
+
+  return true;
 }
 lower_bounds_csa::combined_bound lower_bounds_csa::get_best_bound_for(
     time search_start,
