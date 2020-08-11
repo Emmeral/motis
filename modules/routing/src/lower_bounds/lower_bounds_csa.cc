@@ -77,8 +77,10 @@ bool lower_bounds_csa::calculate() {
     interval backwards_interval{arrival_time};
     csa::csa_query backwards_query(to_id, from_id, backwards_interval, notDir);
 
+    // use a different timetable for the backward search because otherwise
+    // "infinite" lb are produced for stations where you can't enter or exit (Hildesheim Gbr)
     auto const backwards_times = motis::csa::get_arrival_times(
-        *routing_query_.csa_timetable, backwards_query);
+        *routing_query_.csa_timetable_ignored_restrictions, backwards_query);
 
     // get the lower bounds for each node and look if they were decreased
     for (auto i = 0; i < backwards_times.size(); ++i) {

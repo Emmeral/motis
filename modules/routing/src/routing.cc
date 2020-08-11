@@ -58,10 +58,12 @@ void routing::init(motis::module::registry& reg) {
   reg.register_op("/routing/lower_bounds",
                   [this](msg_ptr const& msg) { return lower_bounds(msg); });
 
+
   if (lb_type_ == lower_bounds_type::CSA) {
     LOG(logging::info) << "Building CSA timetable for routing";
     auto const& sched = get_sched();
-    csa_timetable_ = motis::csa::build_csa_timetable(sched, false, false, true);
+    csa_timetable_ = motis::csa::build_csa_timetable(sched, false, false, false);
+    csa_timetable_ignored_restrictions_ = motis::csa::build_csa_timetable(sched, false, false, true);
   }
 }
 
@@ -79,6 +81,7 @@ msg_ptr routing::route(msg_ptr const& msg) {
   query.lb_type = lb_type_;
   if (lb_type_ == lower_bounds_type::CSA) {
     query.csa_timetable = csa_timetable_.get();
+    query.csa_timetable_ignored_restrictions = csa_timetable_ignored_restrictions_.get();
   }
 
   auto res = search_dispatch(query, req->start_type(), req->search_type(),
