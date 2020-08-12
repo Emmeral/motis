@@ -72,25 +72,76 @@ bool lower_bounds_csa::calculate() {
     return false;
   }
 
+  station_ptr const& to_station = routing_query_.sched_->stations_[to_id];
+  auto const offset = direction_ == search_dir::FWD
+                          ? +to_station->transfer_time_
+                          : -to_station->transfer_time_;
+
+  // look if the station can be reached from other stations by foot to prevent a
+  // potential additional query
+  bool to_reachable_by_foot{false};
+  if (direction_ == search_dir::FWD) {
+    auto const& footpaths =
+        routing_query_.csa_timetable->stations_[to_id].incoming_footpaths_;
+    for (auto const& fp : footpaths) {
+      to_reachable_by_foot |= fp.from_station_ != to_id;
+    }
+  } else {
+    auto const& footpaths =
+        routing_query_.csa_timetable->stations_[to_id].footpaths_;
+    for (auto const& fp : footpaths) {
+      to_reachable_by_foot |= fp.to_station_ != to_id;
+    }
+  }
+
   for (auto arrival_time : valid_arrival_times) {
+
+    // Subtract the transfer time from the last station to get the real arrival.
+    auto real_arrival = arrival_time - offset;
+
     // signals ontrip station start because no end of interval
-    interval backwards_interval{arrival_time};
+    interval backwards_interval;
+    backwards_interval.begin_ = real_arrival;
     csa::csa_query backwards_query(to_id, from_id, backwards_interval, notDir);
 
-    // use a different timetable for the backward search because otherwise
-    // "infinite" lb are produced for stations where you can't enter or exit
-    // (Hildesheim Gbr)
-    auto const backwards_times = motis::csa::get_arrival_times(
-        *routing_query_.csa_timetable_ignored_restrictions, backwards_query);
+    process_backwards_query(backwards_query);
 
-    // get the lower bounds for each node and look if they were decreased
-    for (auto i = 0; i < backwards_times.size(); ++i) {
-      combined_bound b = get_best_bound_for(arrival_time, backwards_times[i]);
-      bounds_[i].update_with(b);
+    // if the station was reached by foot the subtraction of the offset leads to
+    // potentially wrong results. Therefore another backwards query has to be
+    // submitted
+    if (to_reachable_by_foot) {
+      backwards_interval = interval{arrival_time};
+      backwards_query =
+          csa::csa_query(to_id, from_id, backwards_interval, notDir);
+      process_backwards_query(backwards_query);
+    }
+  }
+
+  // decrease the lower bounds by the interchange time as they will be to high
+  // for route nodes otherwise. TODO: this could make them to low to
+  auto const& all_stations = routing_query_.sched_->stations_;
+  for (auto i = 0; i < all_stations.size(); ++i) {
+    if (is_valid_time_diff(bounds_[i].time_diff_)) {
+      time_diff_t subtract = std::max(all_stations[i]->transfer_time_, 0);
+      bounds_[i].time_diff_ -= std::min(subtract, bounds_[i].time_diff_);
     }
   }
 
   return true;
+}
+void lower_bounds_csa::process_backwards_query(csa::csa_query& query) {
+  // use a different timetable for the backward search because otherwise
+  // "infinite" lb are produced for stations where you can't enter or exit
+  // (Hildesheim Gbr)
+  auto const backwards_times = motis::csa::get_arrival_times(
+      *routing_query_.csa_timetable_ignored_restrictions, query);
+
+  // get the lower bounds for each node and look if they were decreased
+  for (auto i = 0; i < backwards_times.size(); ++i) {
+    combined_bound b =
+        get_best_bound_for(query.search_interval_.begin_, backwards_times[i]);
+    bounds_[i].update_with(b);
+  }
 }
 lower_bounds_csa::combined_bound lower_bounds_csa::get_best_bound_for(
     time search_start,

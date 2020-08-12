@@ -1,5 +1,6 @@
 #pragma once
 
+#include <motis/csa/csa_query.h>
 #include <motis/csa/csa_search_shared.h>
 #include "motis/routing/lower_bounds/lower_bounds.h"
 #include "motis/routing/search_query.h"
@@ -47,6 +48,8 @@ private:
   lower_bounds_csa::combined_bound get_best_bound_for(
       time search_start,
       const std::array<time, csa::MAX_TRANSFERS + 1>& arr) const;
+
+  void process_backwards_query(csa::csa_query& query);
 
   const search_query& routing_query_;
   const search_dir direction_;
