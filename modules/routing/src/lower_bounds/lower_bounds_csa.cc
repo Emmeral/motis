@@ -97,12 +97,11 @@ bool lower_bounds_csa::calculate() {
   for (auto arrival_time : valid_arrival_times) {
 
     // Subtract the transfer time from the last station to get the real arrival.
-    auto real_arrival = arrival_time - offset;
+    const time real_arrival = arrival_time - offset;
 
     // signals ontrip station start because no end of interval
-    interval backwards_interval;
-    backwards_interval.begin_ = real_arrival;
-    csa::csa_query backwards_query(to_id, from_id, backwards_interval, notDir);
+    const interval backwards_interval{real_arrival};
+    const csa::csa_query backwards_query(to_id, from_id, backwards_interval, notDir);
 
     process_backwards_query(backwards_query);
 
@@ -110,10 +109,9 @@ bool lower_bounds_csa::calculate() {
     // potentially wrong results. Therefore another backwards query has to be
     // submitted
     if (to_reachable_by_foot) {
-      backwards_interval = interval{arrival_time};
-      backwards_query =
-          csa::csa_query(to_id, from_id, backwards_interval, notDir);
-      process_backwards_query(backwards_query);
+      const interval foot_backwards_interval{arrival_time};
+      const csa::csa_query foot_backwards_query(to_id, from_id, foot_backwards_interval, notDir);
+      process_backwards_query(foot_backwards_query);
     }
   }
 
@@ -129,7 +127,7 @@ bool lower_bounds_csa::calculate() {
 
   return true;
 }
-void lower_bounds_csa::process_backwards_query(csa::csa_query& query) {
+void lower_bounds_csa::process_backwards_query(csa::csa_query const& query) {
   // use a different timetable for the backward search because otherwise
   // "infinite" lb are produced for stations where you can't enter or exit
   // (Hildesheim Gbr)
