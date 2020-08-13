@@ -49,7 +49,7 @@ private:
       time search_start,
       const std::array<time, csa::MAX_TRANSFERS + 1>& arr) const;
 
-  void process_backwards_query(csa::csa_query& query);
+  void process_backwards_query(csa::csa_query const& query);
 
   const search_query& routing_query_;
   const search_dir direction_;
