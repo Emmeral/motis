@@ -3,6 +3,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <filesystem>
 
 #include "motis/module/message.h"
 #include "motis/eval/comparator/response.h"
