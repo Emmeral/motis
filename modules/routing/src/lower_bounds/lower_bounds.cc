@@ -52,15 +52,16 @@ lower_bounds_stats lower_bounds::get_stats(
    * @return the lower_bounds object
  */
 lower_bounds_result lower_bounds::get_lower_bounds_for_query(
-    search_query const& q, std::vector<int> const& goal_ids, search_dir dir) {
+    search_query const& q, std::vector<int> const& goal_ids, search_dir dir,
+    lower_bounds_type type) {
 
   std::unique_ptr<lower_bounds> lbs;
   lower_bounds_result result{};
 
 
-  switch (q.lb_type) {
+  switch (type) {
     case lower_bounds_type::CSA: {
-      auto lbs_csa = std::make_unique<lower_bounds_csa>(q, dir);
+      auto lbs_csa = std::make_unique<lower_bounds_csa>(q, dir, goal_ids);
 
       MOTIS_START_TIMING(total_lb_timing);
       auto success = lbs_csa->calculate();

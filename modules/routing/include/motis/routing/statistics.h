@@ -120,7 +120,11 @@ struct statistics {
          {"transfers_lb", s.transfers_lb_},
          {"travel_time_lb", s.travel_time_lb_},
          {"total_lb", s.total_lb},
-         {"interval_extensions", s.interval_extensions_}}};
+         {"interval_extensions", s.interval_extensions_},
+         {"average_lb_travel_time", s.average_lb_travel_time_},
+         {"average_lb_transfers", s.average_lb_transfers_},
+         {"lb_invalid_time_nodes_count", s.lb_invalid_time_nodes_count_},
+         {"lb_invalid_transfer_nodes_count", s.lb_invalid_transfer_nodes_count_}}};
   }
 };
 

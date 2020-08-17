@@ -8,7 +8,16 @@
 
 namespace motis::routing {
 
-struct lower_bounds_result;
+class lower_bounds;
+
+struct lower_bounds_result {
+  std::unique_ptr<lower_bounds> bounds_;
+
+  bool target_reachable{true};
+  uint64_t travel_time_lb_{};
+  uint64_t transfers_lb_{};
+  uint64_t total_lb{};
+};
 
 class lower_bounds {
 public:
@@ -24,18 +33,17 @@ public:
   lower_bounds_stats get_stats(const schedule& sched) const;
 
   static lower_bounds_result get_lower_bounds_for_query(
-      search_query const& q, std::vector<int> const& goal_ids, search_dir dir);
+      search_query const& q, std::vector<int> const& goal_ids, search_dir dir,
+      lower_bounds_type type);
+
+  static lower_bounds_result get_lower_bounds_for_query(
+      search_query const& q, std::vector<int> const& goal_ids, search_dir dir){
+    return get_lower_bounds_for_query(q, goal_ids, dir, q.lb_type);
+  }
 
   virtual ~lower_bounds() = default;
 };
 
-struct lower_bounds_result {
-  std::unique_ptr<lower_bounds> bounds_;
 
-  bool target_reachable{true};
-  uint64_t travel_time_lb_{};
-  uint64_t transfers_lb_{};
-  uint64_t total_lb{};
-};
 
 }  // namespace motis::routing

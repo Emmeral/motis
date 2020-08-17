@@ -60,7 +60,8 @@ struct search {
       is_goal[q.to_->id_] = true;
     }
 
-   auto lb_result = lower_bounds::get_lower_bounds_for_query(q, goal_ids, Dir);
+   auto lb_result =
+        lower_bounds::get_lower_bounds_for_query(q, goal_ids, Dir);
    lower_bounds& lbs = *lb_result.bounds_;
 
    if(!lb_result.target_reachable){

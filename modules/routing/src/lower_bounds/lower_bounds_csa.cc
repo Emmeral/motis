@@ -7,14 +7,28 @@
 namespace motis::routing {
 
 lower_bounds_csa::lower_bounds_csa(search_query const& routing_query,
-                                   search_dir direction)
+                                   search_dir direction,
+                                   const std::vector<int>& goal_ids)
     : routing_query_{routing_query},
       direction_{direction},
-      bounds_(routing_query.sched_->stations_.size()) {
+      bounds_(routing_query.sched_->stations_.size()),
+      additional_transfers_edges_(),
+      transfers_(direction == search_dir::FWD
+                     ? routing_query.sched_->transfers_lower_bounds_fwd_
+                     : routing_query.sched_->transfers_lower_bounds_bwd_,
+                 goal_ids,
+                 additional_transfers_edges_,
+                 map_interchange_graph_node(
+                     routing_query.sched_->station_nodes_.size())),
+      travel_time_(direction == search_dir::FWD
+                   ? routing_query.sched_->travel_time_lower_bounds_fwd_
+                   : routing_query.sched_->travel_time_lower_bounds_bwd_,
+                   goal_ids,
+                   additional_transfers_edges_){
 
-  // it is tricky thinking about forward and backwards search. Also CSA returns
-  // 0 as invalid if searching backwards
-  // the variables are names as if the search direction was forward
+  // it is tricky thinking about forward and backwards search. Also CSA
+  // returns 0 as invalid if searching backwards the variables are names as
+  // if the search direction was forward
   invalid_time_ = direction_ == search_dir::FWD
                       ? std::numeric_limits<time>::max()
                       : std::numeric_limits<time>::min();
@@ -25,16 +39,20 @@ lower_bounds_csa::lower_bounds_csa(search_query const& routing_query,
 
 lower_bounds::time_diff_t lower_bounds_csa::time_from_node(
     node const* n) const {
+  return travel_time_[n];
   return bounds_[n->get_station()->id_].time_diff_;
 }
 bool lower_bounds_csa::is_valid_time_diff(time_diff_t diff) const {
+  return travel_time_.is_reachable(diff);
   return diff != INVALID_TIME_DIFF;
 }
 lower_bounds::interchanges_t lower_bounds_csa::transfers_from_node(
     node const* n) const {
+  return transfers_[n];
   return bounds_[n->get_station()->id_].transfer_amount_;
 }
 bool lower_bounds_csa::is_valid_transfer_amount(interchanges_t amount) const {
+  return transfers_.is_reachable(amount);
   return amount != INVALID_INTERCHANGE_AMOUNT;
 }
 
@@ -42,6 +60,9 @@ using csa_arrival_times_t =
     std::vector<std::array<time, csa::MAX_TRANSFERS + 1>>;
 
 bool lower_bounds_csa::calculate() {
+
+
+
   // TODO throw error if csa would decline request
   // TODO: further think about on- vs pretrip
   interval search_interval{routing_query_.interval_begin_,
@@ -101,7 +122,8 @@ bool lower_bounds_csa::calculate() {
 
     // signals ontrip station start because no end of interval
     const interval backwards_interval{real_arrival};
-    const csa::csa_query backwards_query(to_id, from_id, backwards_interval, notDir);
+    const csa::csa_query backwards_query(to_id, from_id, backwards_interval,
+                                         notDir);
 
     process_backwards_query(backwards_query);
 
@@ -110,7 +132,8 @@ bool lower_bounds_csa::calculate() {
     // submitted
     if (to_reachable_by_foot) {
       const interval foot_backwards_interval{arrival_time};
-      const csa::csa_query foot_backwards_query(to_id, from_id, foot_backwards_interval, notDir);
+      const csa::csa_query foot_backwards_query(
+          to_id, from_id, foot_backwards_interval, notDir);
       process_backwards_query(foot_backwards_query);
     }
   }
@@ -125,6 +148,16 @@ bool lower_bounds_csa::calculate() {
     }
   }
 
+
+  transfers_.run();
+  travel_time_.run();
+
+  for(auto const& sn : routing_query_.sched_->station_nodes_){
+    bounds_[sn->id_].transfer_amount_ = transfers_[sn.get()];
+  }
+
+
+
   return true;
 }
 void lower_bounds_csa::process_backwards_query(csa::csa_query const& query) {
@@ -138,7 +171,7 @@ void lower_bounds_csa::process_backwards_query(csa::csa_query const& query) {
   for (auto i = 0; i < backwards_times.size(); ++i) {
     combined_bound b =
         get_best_bound_for(query.search_interval_.begin_, backwards_times[i]);
-    bounds_[i].update_with(b);
+    bounds_[i] = min_bound(bounds_[i], b);
   }
 }
 lower_bounds_csa::combined_bound lower_bounds_csa::get_best_bound_for(
@@ -174,5 +207,7 @@ lower_bounds_csa::combined_bound lower_bounds_csa::get_best_bound_for(
 bool lower_bounds_csa::earlier(time t1, time t2) const {
   return direction_ == search_dir::FWD ? t1 < t2 : t1 > t2;
 }
+
+
 
 }  // namespace motis::routing
