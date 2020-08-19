@@ -1,12 +1,18 @@
 #include "motis/routing/lower_bounds/lower_bounds.h"
-#include <motis/routing/lower_bounds/lower_bounds_const_graph.h>
-#include <motis/routing/lower_bounds/lower_bounds_csa.h>
-#include <motis/routing/lower_bounds/lower_bounds_none.h>
+#include "motis/routing/lower_bounds/lower_bounds_const_graph.h"
+#include "motis/routing/lower_bounds/lower_bounds_csa.h"
+#include "motis/routing/lower_bounds/lower_bounds_mixed.h"
+#include "motis/routing/lower_bounds/lower_bounds_none.h"
 
 namespace motis::routing {
 
-lower_bounds_stats lower_bounds::get_stats(
-    const schedule& sched) const {
+lower_bounds::lower_bounds(const search_query& routing_query,
+                           search_dir search_direction)
+    : routing_query_(routing_query), search_direction_(search_direction) {}
+
+lower_bounds_stats lower_bounds::get_stats() const {
+
+  schedule const& sched = *routing_query_.sched_;
 
   auto& stations_nodes = sched.station_nodes_;
   uint64_t sum_times{0L}, sum_transfers{0L};
@@ -43,13 +49,12 @@ lower_bounds_stats lower_bounds::get_stats(
   return lower_bounds_stats{avg_time, avg_transfers, invalid_time_count,
                             invalid_transfers_count};
 }
-
 /**
-   * Constructs an lower_bounds object for the specified search query
-   * @param q the query.
-   * @param goal_ids ids of the stations which are a goal of the search query
-   * @param dir The search direction of the query
-   * @return the lower_bounds object
+ * Constructs an lower_bounds object for the specified search query
+ * @param q the query.
+ * @param goal_ids ids of the stations which are a goal of the search query
+ * @param dir The search direction of the query
+ * @return the lower_bounds object
  */
 lower_bounds_result lower_bounds::get_lower_bounds_for_query(
     search_query const& q, std::vector<int> const& goal_ids, search_dir dir,
@@ -58,10 +63,9 @@ lower_bounds_result lower_bounds::get_lower_bounds_for_query(
   std::unique_ptr<lower_bounds> lbs;
   lower_bounds_result result{};
 
-
   switch (type) {
     case lower_bounds_type::CSA: {
-      auto lbs_csa = std::make_unique<lower_bounds_csa>(q, dir, goal_ids);
+      auto lbs_csa = std::make_unique<lower_bounds_csa>(q, dir);
 
       MOTIS_START_TIMING(total_lb_timing);
       auto success = lbs_csa->calculate();
@@ -74,44 +78,8 @@ lower_bounds_result lower_bounds::get_lower_bounds_for_query(
     }
     case lower_bounds_type::CG: {
 
-      auto const route_offset = q.sched_->station_nodes_.size();
-      mcd::hash_map<unsigned, std::vector<simple_edge>>
-          travel_time_lb_graph_edges;
-      mcd::hash_map<unsigned, std::vector<simple_edge>>
-          transfers_lb_graph_edges;
-
-      // construct the lower bounds graph for the additional edges
-      for (auto const& e : q.query_edges_) {
-        auto const from_node = (dir == search_dir::FWD) ? e.from_ : e.to_;
-        auto const to_node = (dir == search_dir::FWD) ? e.to_ : e.from_;
-
-        // station graph
-        auto const from_station = from_node->get_station()->id_;
-        auto const to_station = to_node->get_station()->id_;
-
-        // interchange graph
-        auto const from_interchange = from_node->is_route_node()
-                                          ? route_offset + from_node->route_
-                                          : from_station;
-        auto const to_interchange = to_node->is_route_node()
-                                        ? route_offset + to_node->route_
-                                        : to_station;
-
-        auto const ec = e.get_minimum_cost();
-
-        travel_time_lb_graph_edges[to_station].emplace_back(
-            simple_edge{from_station, ec.time_});
-        transfers_lb_graph_edges[to_interchange].emplace_back(simple_edge{
-            from_interchange, static_cast<uint16_t>(ec.transfer_ ? 1 : 0)});
-      }
-
-      auto lbs_cg = std::make_unique<lower_bounds_const_graph>(
-          *q.sched_,  //
-          dir == search_dir::FWD ? q.sched_->travel_time_lower_bounds_fwd_
-                                 : q.sched_->travel_time_lower_bounds_bwd_,
-          dir == search_dir::FWD ? q.sched_->transfers_lower_bounds_fwd_
-                                 : q.sched_->transfers_lower_bounds_bwd_,
-          goal_ids, travel_time_lb_graph_edges, transfers_lb_graph_edges);
+      auto lbs_cg =
+          std::make_unique<lower_bounds_const_graph>(q, dir, goal_ids);
 
       MOTIS_START_TIMING(travel_time_lb_timing);
       lbs_cg->calculate_timing();
@@ -135,8 +103,33 @@ lower_bounds_result lower_bounds::get_lower_bounds_for_query(
       result.bounds_ = std::move(lbs_cg);
       break;
     }
+    case lower_bounds_type::MIXED: {
+      auto lbs_mixed = std::make_unique<lower_bounds_mixed>(q, dir, goal_ids);
+
+      MOTIS_START_TIMING(travel_time_lb_timing);
+      auto success = lbs_mixed->calculate_timing();
+      MOTIS_STOP_TIMING(travel_time_lb_timing);
+
+      result.travel_time_lb_ = MOTIS_TIMING_MS(travel_time_lb_timing);
+
+      // questionable if condition might be removed
+      if (!success) {
+        result.target_reachable = false;
+        return result;
+      }
+
+      MOTIS_START_TIMING(transfers_lb_timing);
+      lbs_mixed->calculate_transfers();
+      MOTIS_STOP_TIMING(transfers_lb_timing);
+
+      result.transfers_lb_ = MOTIS_TIMING_MS(transfers_lb_timing);
+      result.total_lb = result.transfers_lb_ + result.travel_time_lb_;
+
+      result.bounds_ = std::move(lbs_mixed);
+      break;
+    }
     case lower_bounds_type::NONE: {
-      auto lbs_none = std::make_unique<lower_bounds_none>();
+      auto lbs_none = std::make_unique<lower_bounds_none>(q, dir);
       result.bounds_ = std::move(lbs_none);
     }
   }
@@ -144,4 +137,4 @@ lower_bounds_result lower_bounds::get_lower_bounds_for_query(
   return result;
 }
 
-}
+}  // namespace motis::routing

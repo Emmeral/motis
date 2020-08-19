@@ -15,7 +15,7 @@ namespace motis::routing {
 class lower_bounds_none : public lower_bounds {
 
 public:
-  lower_bounds_none();
+  lower_bounds_none(search_query const& routing_query, search_dir dir);
   time_diff_t time_from_node(node const* n) const override;
   bool is_valid_time_diff(time_diff_t time) const override;
   interchanges_t transfers_from_node(node const* n) const override;

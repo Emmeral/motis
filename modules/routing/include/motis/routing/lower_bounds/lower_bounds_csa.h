@@ -12,8 +12,7 @@ namespace motis::routing {
 class lower_bounds_csa : public lower_bounds {
 
 public:
-  lower_bounds_csa(search_query const& routing_query, search_dir direction,
-                   const std::vector<int>& goal_ids);
+  lower_bounds_csa(search_query const& routing_query, search_dir direction);
   time_diff_t time_from_node(node const* n) const override;
   bool is_valid_time_diff(time_diff_t diff) const override;
   interchanges_t transfers_from_node(node const* n) const override;
@@ -38,13 +37,15 @@ private:
   };
 
   /**
-     * Updates the combined bound to be the the minimum of itself and the given
-     * bound
-     * @param bound the other bound with potential updates
-     */
-  static combined_bound min_bound(const combined_bound& bound1, const combined_bound& bound2) {
+   * Updates the combined bound to be the the minimum of itself and the given
+   * bound
+   * @param bound the other bound with potential updates
+   */
+  static combined_bound min_bound(const combined_bound& bound1,
+                                  const combined_bound& bound2) {
     auto time_diff = std::min(bound1.time_diff_, bound2.time_diff_);
-    auto transfer_amount = std::min(bound1.transfer_amount_, bound2.transfer_amount_);
+    auto transfer_amount =
+        std::min(bound1.transfer_amount_, bound2.transfer_amount_);
     return combined_bound{time_diff, transfer_amount};
   }
 
@@ -55,17 +56,10 @@ private:
 
   void process_backwards_query(csa::csa_query const& query);
 
-  const search_query& routing_query_;
-  const search_dir direction_;
   time minimal_time_;
   time invalid_time_;
 
   std::vector<combined_bound> bounds_;
-
-  mcd::hash_map<unsigned, std::vector<simple_edge>> const
-      additional_transfers_edges_;
-  constant_graph_dijkstra<MAX_TRANSFERS, map_interchange_graph_node> transfers_;
-  constant_graph_dijkstra<MAX_TRAVEL_TIME, map_station_graph_node> travel_time_;
 };
 
 }  // namespace motis::routing

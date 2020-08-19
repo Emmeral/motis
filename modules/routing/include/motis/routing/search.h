@@ -196,7 +196,7 @@ struct search {
     stats.interval_extensions_ = search_iterations - 1;
 
     if (q.extended_lb_stats_) {
-      auto lb_stats = lbs.get_stats(*q.sched_);
+      auto lb_stats = lbs.get_stats();
 
       stats.average_lb_travel_time_ =
           static_cast<uint64_t>(std::round(lb_stats.avg_travel_time));

@@ -4,7 +4,9 @@
 
 namespace motis::routing {
 
-lower_bounds_none::lower_bounds_none() {}
+lower_bounds_none::lower_bounds_none(search_query const& routing_query,
+                                     search_dir dir)
+    : lower_bounds(routing_query, dir) {}
 
 lower_bounds::time_diff_t lower_bounds_none::time_from_node(
     node const* /*n*/) const {
