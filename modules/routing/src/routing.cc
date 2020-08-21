@@ -198,20 +198,34 @@ msg_ptr routing::lower_bounds(msg_ptr const& msg) {
   message_creator fbb;
 
   std::vector<flatbuffers::Offset<LowerBoundEntry>> offsets;
+
   for (auto const& station : query.sched_->stations_) {
-    auto const& node = query.sched_->station_nodes_[station->index_].get();
-
-    auto time = lbs->time_from_node(node);
-    bool time_valid = lbs->is_valid_time_diff(time);
-
-    auto interchanges = lbs->transfers_from_node(node);
-    bool interchanges_valid = lbs->is_valid_transfer_amount(interchanges);
+    auto const& node = *query.sched_->station_nodes_[station->index_];
 
     auto eva_nr = station->eva_nr_.str();
 
-    auto offset =
-        CreateLowerBoundEntry(fbb, fbb.CreateString(eva_nr), time, time_valid,
-                              interchanges, interchanges_valid);
+    std::vector<flatbuffers::Offset<LowerBoundsRouteNodeEntry>> route_offsets;
+    for (auto const& rn : node.route_nodes_) {
+      auto time = lbs->time_from_node(rn.get());
+      bool time_valid = lbs->is_valid_time_diff(time);
+
+      auto interchanges = lbs->transfers_from_node(rn.get());
+      bool interchanges_valid = lbs->is_valid_transfer_amount(interchanges);
+
+      auto rn_offset = CreateLowerBoundsRouteNodeEntry(
+          fbb, time, time_valid, interchanges, interchanges_valid);
+      route_offsets.emplace_back(rn_offset);
+    }
+
+    auto time = lbs->time_from_node(&node);
+    bool time_valid = lbs->is_valid_time_diff(time);
+
+    auto interchanges = lbs->transfers_from_node(&node);
+    bool interchanges_valid = lbs->is_valid_transfer_amount(interchanges);
+
+    auto offset = CreateLowerBoundEntry(
+        fbb, fbb.CreateString(eva_nr), time, time_valid, interchanges,
+        interchanges_valid, fbb.CreateVector(route_offsets));
 
     offsets.emplace_back(offset);
   }

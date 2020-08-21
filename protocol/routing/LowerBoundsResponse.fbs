@@ -10,4 +10,12 @@ table LowerBoundEntry{
  lb_time_valid: bool;
  lb_transfers: uint;
  lb_transfers_valid: bool;
+ route_nodes: [LowerBoundsRouteNodeEntry];
+}
+
+table LowerBoundsRouteNodeEntry{
+ lb_time: uint;
+ lb_time_valid: bool;
+ lb_transfers: uint;
+ lb_transfers_valid: bool;
 }
