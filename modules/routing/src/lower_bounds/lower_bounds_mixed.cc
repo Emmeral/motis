@@ -27,7 +27,9 @@ bool lower_bounds_mixed::is_valid_time_diff(time_diff_t time) const {
 }
 lower_bounds::interchanges_t lower_bounds_mixed::transfers_from_node(
     node const* n) const {
-  return cg_lower_bounds.transfers_from_node(n);
+  auto const csa = csa_lower_bounds_.transfers_from_node(n);
+  auto const cg = cg_lower_bounds.transfers_from_node(n);
+  return std::max(csa, cg)
 }
 bool lower_bounds_mixed::is_valid_transfer_amount(interchanges_t amount) const {
   return cg_lower_bounds.is_valid_transfer_amount(amount);
