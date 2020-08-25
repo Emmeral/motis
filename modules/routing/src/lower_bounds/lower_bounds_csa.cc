@@ -61,9 +61,14 @@ bool lower_bounds_csa::calculate() {
       search_direction_ == search_dir::FWD ? search_dir::BWD : search_dir::FWD;
 
   std::vector<time> valid_arrival_times;
-  std::copy_if(arrival_times.begin(), arrival_times.end(),
-               std::back_inserter(valid_arrival_times),
-               [inv_time = invalid_time_](time t) { return t != inv_time; });
+  time last_added = invalid_time_;
+  // only use valid arrival time + use each time only once
+  for(int i = 0 ; i < arrival_times.size(); i ++){
+    if(arrival_times[i] != invalid_time_ && arrival_times[i] != last_added){
+      valid_arrival_times.push_back(arrival_times[i]);
+      last_added = arrival_times[i];
+    }
+  }
 
   // Return if no valid arrival could be found. Note interval extension not
   // included
