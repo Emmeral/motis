@@ -49,14 +49,9 @@ private:
     return combined_bound{time_diff, transfer_amount};
   }
 
-  bool earlier(time t1, time t2) const;
   lower_bounds_csa::combined_bound get_best_bound_for(
-      time search_start,
       const std::array<time, csa::MAX_TRANSFERS + 1>& arr) const;
 
-  void process_backwards_query(csa::csa_query const& query);
-
-  time minimal_time_;
   time invalid_time_;
 
   std::vector<combined_bound> bounds_;
