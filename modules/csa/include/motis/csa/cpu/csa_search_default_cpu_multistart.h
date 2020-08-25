@@ -56,6 +56,9 @@ struct csa_search {
     for (int i = 0; i < starts.size(); ++i) {
       auto const& start = starts[i];
       arrival_time_[start.station.id_][i][0] = start.start_time;
+      needed_time_[start.station.id_][0] = 0;
+      best_arrival_time[start.station.id_][0] =
+          std::min(best_arrival_time[start.station.id_][0], start.start_time);
 
       expand_footpaths(start.station, start.start_time, 0, i);
 
@@ -177,19 +180,17 @@ struct csa_search {
         auto const fp_arrival = station_arrival - fp.duration_;
         auto time_difference = starts_[start_id].start_time - fp_arrival;
 
-
         // if the arrival is not relevant for further search.
-        if (fp_arrival < best_arrival_time[fp.to_station_][transfers] &&
-            time_difference > needed_time_[fp.to_station_][transfers]) {
+        if (fp_arrival < best_arrival_time[fp.from_station_][transfers] &&
+            time_difference > needed_time_[fp.from_station_][transfers]) {
           continue;
         }
 
-
-        if (arrival_time_[fp.to_station_][start_id][transfers] < fp_arrival) {
-          arrival_time_[fp.to_station_][start_id][transfers] = fp_arrival;
-          if (needed_time_[fp.to_station_][transfers] > time_difference) {
-            needed_time_[fp.to_station_][transfers] = time_difference;
-            best_arrival_time[fp.to_station_][transfers] = fp_arrival;
+        if (arrival_time_[fp.from_station_][start_id][transfers] < fp_arrival) {
+          arrival_time_[fp.from_station_][start_id][transfers] = fp_arrival;
+          if (needed_time_[fp.from_station_][transfers] > time_difference) {
+            needed_time_[fp.from_station_][transfers] = time_difference;
+            best_arrival_time[fp.from_station_][transfers] = fp_arrival;
           }
         }
       }
