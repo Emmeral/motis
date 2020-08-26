@@ -63,10 +63,10 @@ bool lower_bounds_csa::calculate() {
   std::vector<time> valid_arrival_times;
   time last_added = invalid_time_;
   // only use valid arrival time + use each time only once
-  for(int i = 0 ; i < arrival_times.size(); i ++){
-    if(arrival_times[i] != invalid_time_ && arrival_times[i] != last_added){
-      valid_arrival_times.push_back(arrival_times[i]);
-      last_added = arrival_times[i];
+  for (auto const& arrival_time : arrival_times) {
+    if (arrival_time != invalid_time_ && arrival_time != last_added) {
+      valid_arrival_times.push_back(arrival_time);
+      last_added = arrival_time;
     }
   }
 
