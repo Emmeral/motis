@@ -79,7 +79,10 @@ struct generator_settings : public conf::configuration {
       {"LateConnectionsTest", SearchType_LateConnectionsTest},
       {"Accessibility", SearchType_Accessibility},
       {"DefaultPrice", SearchType_DefaultPrice},
-      {"DefaultPriceRegional", SearchType_DefaultPriceRegional}};
+      {"DefaultPriceRegional", SearchType_DefaultPriceRegional},
+      {"AccessibilityPrice", SearchType_AccessibilityPrice},
+      {"AccessibilityPriceTransferClasses",
+       SearchType_AccessibilityPriceTransferClasses}};
 
   SearchType get_search_type() const {
     auto iterator = SEARCH_TYPE_LOOKUP.find(search_type_);
