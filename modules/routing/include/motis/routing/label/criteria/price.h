@@ -114,10 +114,22 @@ struct price_dominance {
     inline bool greater() const { return greater_; }
     inline bool smaller() const { return smaller_; }
     inline uint16_t get_additional_price(Label const& a, Label const& b) {
-      auto price = a.ice_ ? 0
-                          : (a.ic_ ? (b.ice_ ? 100 : 0)
-                                   : (b.ice_ ? 700 : (b.ic_ ? 600 : 0)));
-      return price;
+
+      if(a.ice_){
+        return 0;
+      }
+      if(b.ice_){
+        if(a.ic){
+          return 100;
+        }else{
+          return 700;
+        }
+      }
+      if(b.ic_ && !a.ic_){
+        return 600;
+      }
+
+      return 0;
     }
     bool greater_, smaller_;
   };
