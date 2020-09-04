@@ -103,37 +103,34 @@ using accessibility_label =
           comparator<transfers_dominance, accessibility_dominance>>;
 
 template <search_dir Dir>
-using price_acc_label = label<
-    Dir, MAX_TRAVEL_TIME, false, get_travel_time_lb,
-    label_data<travel_time, transfers, accessibility, price, absurdity>,
-    initializer<travel_time_initializer, transfers_initializer,
-                accessibility_initializer, price_inititalizer,
-                absurdity_initializer>,
-    updater<travel_time_updater, transfers_updater, accessibility_updater,
-            price_updater, absurdity_updater>,
-    filter<travel_time_filter, transfers_filter>,
-    dominance<absurdity_tb, travel_time_dominance, transfers_dominance,
-              accessibility_dominance, price_dominance>,
-    dominance<absurdity_post_search_tb, travel_time_alpha_dominance,
-              transfers_dominance, price_dominance, accessibility_dominance>,
-    comparator<transfers_dominance, accessibility_dominance>>;
-
-template <search_dir Dir>
-using price_acc_transfer_classes_label =
+using price_label =
     label<Dir, MAX_TRAVEL_TIME, false, get_travel_time_lb,
-          label_data<travel_time, transfers, accessibility, price,
-                     transfer_classes, absurdity>,
+          label_data<travel_time, transfers, price, absurdity>,
           initializer<travel_time_initializer, transfers_initializer,
-                      accessibility_initializer, price_inititalizer,
-                      transfer_classes_initializer, absurdity_initializer>,
-          updater<travel_time_updater, transfers_updater, accessibility_updater,
-                  price_updater, transfer_classes_updater, absurdity_updater>,
+                      price_inititalizer, absurdity_initializer>,
+          updater<travel_time_updater, transfers_updater, price_updater,
+                  absurdity_updater>,
           filter<travel_time_filter, transfers_filter>,
           dominance<absurdity_tb, travel_time_dominance, transfers_dominance,
-                    accessibility_dominance, price_dominance,
-                    transfer_classes_max_dominance>,
+                    price_dominance>,
           dominance<absurdity_post_search_tb, travel_time_alpha_dominance,
-                    transfers_dominance, price_dominance,
-                    transfer_classes_max_dominance, accessibility_dominance>,
-          comparator<transfers_dominance, accessibility_dominance>>;
+                    transfers_dominance, price_dominance>,
+          comparator<transfers_dominance>>;
+
+template <search_dir Dir>
+using price_transfer_classes_label = label<
+    Dir, MAX_TRAVEL_TIME, false, get_travel_time_lb,
+    label_data<travel_time, transfers, price, transfer_classes, absurdity>,
+    initializer<travel_time_initializer, transfers_initializer,
+                price_inititalizer, transfer_classes_initializer,
+                absurdity_initializer>,
+    updater<travel_time_updater, transfers_updater, price_updater,
+            transfer_classes_updater, absurdity_updater>,
+    filter<travel_time_filter, transfers_filter>,
+    dominance<absurdity_tb, travel_time_dominance, transfers_dominance,
+              price_dominance, transfer_classes_max_dominance>,
+    dominance<absurdity_post_search_tb, travel_time_alpha_dominance,
+              transfers_dominance, price_dominance,
+              transfer_classes_max_dominance>,
+    comparator<transfers_dominance>>;
 }  // namespace motis::routing

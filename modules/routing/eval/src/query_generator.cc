@@ -80,9 +80,9 @@ struct generator_settings : public conf::configuration {
       {"Accessibility", SearchType_Accessibility},
       {"DefaultPrice", SearchType_DefaultPrice},
       {"DefaultPriceRegional", SearchType_DefaultPriceRegional},
-      {"AccessibilityPrice", SearchType_AccessibilityPrice},
-      {"AccessibilityPriceTransferClasses",
-       SearchType_AccessibilityPriceTransferClasses}};
+      {"Price", SearchType_Price},
+      {"PriceTransferClasses",
+       SearchType_PriceTransferClasses}};
 
   SearchType get_search_type() const {
     auto iterator = SEARCH_TYPE_LOOKUP.find(search_type_);

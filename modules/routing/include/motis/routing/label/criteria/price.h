@@ -119,7 +119,7 @@ struct price_dominance {
         return 0;
       }
       if(b.ice_){
-        if(a.ic){
+        if(a.ic_){
           return 100;
         }else{
           return 700;

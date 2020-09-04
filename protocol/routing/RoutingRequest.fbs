@@ -98,8 +98,8 @@ enum SearchType : byte {
   Accessibility,
   DefaultPrice,
   DefaultPriceRegional,
-  AccessibilityPrice,
-  AccessibilityPriceTransferClasses,
+  Price,
+  PriceTransferClasses,
 }
 
 // ----------------------------------------------------------------------------
