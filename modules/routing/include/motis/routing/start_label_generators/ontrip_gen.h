@@ -13,7 +13,7 @@ namespace motis::routing {
 template <search_dir Dir, typename Label>
 struct ontrip_gen {
   static std::vector<Label*> generate(schedule const& sched, mem_manager& mem,
-                                      lower_bounds& lbs, edge const* start_edge,
+                                      lower_bounds<Label>& lbs, edge const* start_edge,
                                       std::vector<edge> const&,
                                       std::vector<edge> const& query_edges,
                                       time interval_begin,
@@ -37,7 +37,7 @@ struct ontrip_gen {
   }
 
   static void generate_intermodal_starts(
-      schedule const& sched, mem_manager& mem, lower_bounds& lbs,
+      schedule const& sched, mem_manager& mem, lower_bounds<Label>& lbs,
       edge const* start_edge, std::vector<edge> const& query_edges,
       time start_time, bool starting_footpaths, std::vector<Label*>& labels) {
     auto const start = sched.station_nodes_.at(0).get();
@@ -60,7 +60,7 @@ struct ontrip_gen {
   }
 
   static void generate_station_starts(schedule const& sched, mem_manager& mem,
-                                      lower_bounds& lbs, edge const* start_edge,
+                                      lower_bounds<Label>& lbs, edge const* start_edge,
                                       time start_time, bool starting_footpaths,
                                       light_connection const* lcon,
                                       std::vector<Label*>& labels) {
@@ -70,7 +70,7 @@ struct ontrip_gen {
   }
 
   static void generate_train_start(schedule const&, mem_manager& mem,
-                                   lower_bounds& lbs, edge const* start_edge,
+                                   lower_bounds<Label>& lbs, edge const* start_edge,
                                    time start_time,
                                    light_connection const* lcon,
                                    std::vector<Label*>& labels) {
@@ -78,7 +78,7 @@ struct ontrip_gen {
   }
 
   static void generate_labels_at_route_nodes(
-      schedule const& sched, mem_manager& mem, lower_bounds& lbs,
+      schedule const& sched, mem_manager& mem, lower_bounds<Label>& lbs,
       std::vector<std::pair<edge const*, int>> const& initial_path,
       time start_time, bool starting_footpaths, bool add_first_interchange_time,
       light_connection const* lcon, std::vector<Label*>& labels) {
@@ -91,7 +91,7 @@ struct ontrip_gen {
   }
 
   static void generate_start_label(
-      mem_manager& mem, lower_bounds& lbs,
+      mem_manager& mem, lower_bounds<Label>& lbs,
       std::vector<std::pair<edge const*, int>> const& path, time start_time,
       light_connection const* lcon, std::vector<Label*>& labels) {
     Label* l = nullptr;

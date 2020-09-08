@@ -1,5 +1,6 @@
 #pragma once
 
+#include <motis/routing/lower_bounds/lower_bounds_factory.h>
 #include "motis/csa/build_csa_timetable.h"
 #include "motis/routing/lower_bounds/lower_bounds_const_graph.h"
 #include "motis/routing/lower_bounds/lower_bounds_csa.h"
@@ -28,7 +29,8 @@ struct search_result {
         interval_begin_(interval_begin),
         interval_end_(interval_end) {}
   explicit search_result(unsigned travel_time_lb) : stats_(travel_time_lb) {}
-  explicit search_result(lower_bounds_result const& lb_result){
+  template <typename Label>
+  explicit search_result(lower_bounds_result<Label> const& lb_result){
     stats_ = statistics();
     stats_.total_lb = lb_result.total_lb;
     stats_.travel_time_lb_ = lb_result.travel_time_lb_;
@@ -60,9 +62,8 @@ struct search {
       is_goal[q.to_->id_] = true;
     }
 
-   auto lb_result =
-        lower_bounds::get_lower_bounds_for_query(q, goal_ids, Dir);
-   lower_bounds& lbs = *lb_result.bounds_;
+   auto lb_result = get_lower_bounds_for_query<Label>(q, goal_ids, Dir);
+   lower_bounds<Label>& lbs = *lb_result.bounds_;
 
    if(!lb_result.target_reachable){
      return search_result(lb_result);
@@ -112,7 +113,7 @@ struct search {
       additional_edges[e.get_source<Dir>()].push_back(e);
     }
 
-    pareto_dijkstra<Dir, Label, lower_bounds> pd(
+    pareto_dijkstra<Dir, Label, lower_bounds<Label>> pd(
         q.sched_->node_count_, q.sched_->stations_.size(), is_goal,
         std::move(additional_edges), lbs, *q.mem_);
 

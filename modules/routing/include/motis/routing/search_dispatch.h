@@ -44,9 +44,9 @@ inline search_result search_dispatch(search_query const& q,
         return get_connections<default_simple_label<Dir>, Gen>(q);
       }
     case SearchType_SingleCriterion:
-      return get_connections<single_criterion_label<Dir>, Gen>(q);
+      // return get_connections<single_criterion_label<Dir>, Gen>(q); TODO: uncomment
     case SearchType_SingleCriterionNoIntercity:
-      return get_connections<single_criterion_no_intercity_label<Dir>, Gen>(q);
+      // return get_connections<single_criterion_no_intercity_label<Dir>, Gen>(q); TODO: uncomment
     case SearchType_LateConnections:
       return get_connections<late_connections_label<Dir>, Gen>(q);
     case SearchType_LateConnectionsTest:

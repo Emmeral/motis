@@ -15,7 +15,7 @@ struct transfers_initializer {
   static void init(Label& l, LowerBounds& lb) {
     l.transfers_ = 0;
 
-    auto const lb_val = lb.transfers_from_node(l.get_node());
+    auto const lb_val = lb.transfers_from_label(l);
     if (lb.is_valid_transfer_amount(lb_val)) {
       l.transfers_lb_ = lb_val;
     } else {
@@ -31,7 +31,7 @@ struct transfers_updater {
       ++l.transfers_;
     }
 
-    auto const lb_val = lb.transfers_from_node(l.get_node());
+    auto const lb_val = lb.transfers_from_label(l);
     if (lb.is_valid_transfer_amount(lb_val)) {
       l.transfers_lb_ = l.transfers_ + lb_val;
     } else {

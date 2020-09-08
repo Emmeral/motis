@@ -32,7 +32,8 @@ struct journey_meta_data {
             std::max(0, static_cast<int>(std::count_if(
                             std::begin(*c->stops()), std::end(*c->stops()),
                             [](Stop const* s) { return s->exit(); })) -
-                            1)) {}
+                            1)),
+        price_(c->price()){}
 
   inline friend bool operator==(journey_meta_data const& a,
                                 journey_meta_data const& b) {
@@ -65,6 +66,7 @@ struct journey_meta_data {
   time_t arrival_time_;
   unsigned duration_;
   unsigned transfers_;
+  uint32_t price_;
 };
 
 struct response {

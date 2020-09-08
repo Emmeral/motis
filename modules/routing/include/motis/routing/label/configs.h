@@ -43,6 +43,7 @@ using default_simple_label = label<
     dominance<post_search_tb, travel_time_alpha_dominance, transfers_dominance>,
     comparator<transfers_dominance>>;
 
+/**
 template <search_dir Dir>
 using single_criterion_label =
     label<Dir, MAX_WEIGHTED, false, get_weighted_lb, label_data<weighted>,
@@ -57,7 +58,7 @@ using single_criterion_no_intercity_label =
           filter<weighted_filter, no_intercity_filter>,
           dominance<default_tb, weighted_dominance>, dominance<post_search_tb>,
           comparator<weighted_dominance>>;
-
+**/
 template <search_dir Dir>
 using late_connections_label = label<
     Dir, MAX_TRAVEL_TIME, false, get_travel_time_lb,
@@ -110,7 +111,7 @@ using price_label =
                       price_inititalizer, absurdity_initializer>,
           updater<travel_time_updater, transfers_updater, price_updater,
                   absurdity_updater>,
-          filter<travel_time_filter, transfers_filter>,
+          filter< travel_time_filter, transfers_filter>,
           dominance<absurdity_tb, travel_time_dominance, transfers_dominance,
                     price_dominance>,
           dominance<absurdity_post_search_tb, travel_time_alpha_dominance,

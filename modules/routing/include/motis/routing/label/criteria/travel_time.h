@@ -20,7 +20,7 @@ struct travel_time_initializer {
   static void init(Label& l, LowerBounds& lb) {
     l.travel_time_ = std::abs(l.now_ - l.start_);
 
-    auto const lb_val = lb.time_from_node(l.get_node());
+    auto const lb_val = lb.time_from_label(l);
     if (lb.is_valid_time_diff(lb_val)) {
       l.travel_time_lb_ = l.travel_time_ + lb_val;
     } else {
@@ -34,7 +34,7 @@ struct travel_time_updater {
   static void update(Label& l, edge_cost const& ec, LowerBounds& lb) {
     l.travel_time_ += ec.time_;
 
-    auto const lb_val = lb.time_from_node(l.get_node());
+    auto const lb_val = lb.time_from_label(l);
     if (lb.is_valid_time_diff(lb_val)) {
       l.travel_time_lb_ = l.travel_time_ + lb_val;
     } else {

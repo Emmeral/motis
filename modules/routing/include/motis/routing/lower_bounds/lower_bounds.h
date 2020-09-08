@@ -8,40 +8,67 @@
 
 namespace motis::routing {
 
-class lower_bounds;
 
-struct lower_bounds_result {
-  std::unique_ptr<lower_bounds> bounds_;
+using time_diff_t = uint32_t;
+using interchanges_t = uint32_t;
 
-  bool target_reachable{true};
-  uint64_t travel_time_lb_{};
-  uint64_t transfers_lb_{};
-  uint64_t total_lb{};
-};
-
+template <typename Label>
 class lower_bounds {
 public:
-  using time_diff_t = uint32_t;
-  using interchanges_t = uint32_t;
-
   lower_bounds() = delete;
-  lower_bounds(search_query const& routing_query, search_dir search_direction);
+  lower_bounds(search_query const& routing_query, search_dir search_direction)
+      : routing_query_(routing_query), search_direction_(search_direction) {}
 
-  virtual time_diff_t time_from_node(node const* n) const = 0;
+  virtual time_diff_t time_from_node(node const* n) const =0;
+  virtual time_diff_t time_from_label(Label& l) const{
+    return time_from_node(l.get_node());
+  }
   virtual bool is_valid_time_diff(time_diff_t diff) const = 0;
 
+  virtual interchanges_t transfers_from_label(Label& l) const{
+      return transfers_from_node(l.get_node());
+  };
   virtual interchanges_t transfers_from_node(node const* n) const = 0;
   virtual bool is_valid_transfer_amount(interchanges_t amount) const = 0;
 
-  lower_bounds_stats get_stats() const;
+  lower_bounds_stats get_stats() const {
 
-  static lower_bounds_result get_lower_bounds_for_query(
-      search_query const& q, std::vector<int> const& goal_ids, search_dir dir,
-      lower_bounds_type type);
+    schedule const& sched = *routing_query_.sched_;
 
-  static lower_bounds_result get_lower_bounds_for_query(
-      search_query const& q, std::vector<int> const& goal_ids, search_dir dir) {
-    return get_lower_bounds_for_query(q, goal_ids, dir, q.lb_type);
+    auto& stations_nodes = sched.station_nodes_;
+    uint64_t sum_times{0L}, sum_transfers{0L};
+    uint32_t invalid_time_count{0}, invalid_transfers_count{0};
+    uint32_t valid_time_count{0}, valid_transfers_count{0};
+
+    auto process_node = [&, this](const node* n) {
+      auto time = this->time_from_node(n);
+      auto transfers = this->transfers_from_node(n);
+      if (this->is_valid_time_diff(time)) {
+        sum_times += time;
+        ++valid_time_count;
+      } else {
+        ++invalid_time_count;
+      }
+
+      if (this->is_valid_transfer_amount(transfers)) {
+        sum_transfers += transfers;
+        ++valid_transfers_count;
+      } else {
+        ++invalid_transfers_count;
+      }
+    };
+
+    for (auto& n : stations_nodes) {
+      process_node(n.get());  // only process stations as route nodes may alter
+      // the statistics
+    }
+
+    double avg_time = static_cast<double>(sum_times) / valid_time_count;
+    double avg_transfers =
+        static_cast<double>(sum_transfers) / valid_transfers_count;
+
+    return lower_bounds_stats{avg_time, avg_transfers, invalid_time_count,
+                              invalid_transfers_count};
   }
 
   virtual ~lower_bounds() = default;

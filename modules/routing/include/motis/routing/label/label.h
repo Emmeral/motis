@@ -17,7 +17,7 @@ struct label : public Data {  // NOLINT
 
   label() = default;  // NOLINT
 
-  label(edge const* e, label* pred, time now, lower_bounds& lb,
+  label(edge const* e, label* pred, time now, lower_bounds<label>& lb,
         light_connection const* lcon = nullptr)
       : pred_(pred),
         edge_(e),

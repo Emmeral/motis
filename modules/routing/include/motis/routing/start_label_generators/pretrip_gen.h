@@ -18,7 +18,7 @@ namespace motis::routing {
 template <search_dir Dir, typename Label>
 struct pretrip_gen {
   static std::vector<Label*> generate(schedule const& sched, mem_manager& mem,
-                                      lower_bounds& lbs, edge const* start_edge,
+                                      lower_bounds<Label>& lbs, edge const* start_edge,
                                       std::vector<edge> const& meta_edges,
                                       std::vector<edge> const& query_edges,
                                       time interval_begin, time interval_end,
@@ -39,7 +39,7 @@ struct pretrip_gen {
   }
 
   static void generate_intermodal_starts(schedule const& sched,
-                                         mem_manager& mem, lower_bounds& lbs,
+                                         mem_manager& mem, lower_bounds<Label>& lbs,
                                          edge const* start_edge,
                                          std::vector<edge> const& query_edges,
                                          time interval_begin, time interval_end,
@@ -74,7 +74,7 @@ struct pretrip_gen {
   }
 
   static void generate_meta_starts(schedule const& sched, mem_manager& mem,
-                                   lower_bounds& lbs,
+                                   lower_bounds<Label>& lbs,
                                    std::vector<edge> const& meta_edges,
                                    time interval_begin, time interval_end,
                                    bool starting_footpaths,
@@ -87,7 +87,7 @@ struct pretrip_gen {
   }
 
   static void generate_labels_at_route_nodes(
-      schedule const& sched, mem_manager& mem, lower_bounds& lbs,
+      schedule const& sched, mem_manager& mem, lower_bounds<Label>& lbs,
       const std::vector<std::pair<edge const*, int>>& initial_path,
       time interval_begin, time interval_end, bool starting_footpaths,
       bool add_first_interchange_time, std::vector<Label*>& labels) {
@@ -102,7 +102,7 @@ struct pretrip_gen {
 
   static void generate_start_labels(
       std::vector<std::pair<edge const*, int>> const& path, edge const& re,
-      mem_manager& mem, lower_bounds& lbs, time interval_begin,
+      mem_manager& mem, lower_bounds<Label>& lbs, time interval_begin,
       time interval_end, duration initial_walk, std::vector<Label*>& labels) {
     assert(!path.empty());
 
@@ -137,7 +137,7 @@ struct pretrip_gen {
   }
 
   static void generate_ontrip_label(
-      mem_manager& mem, lower_bounds& lbs,
+      mem_manager& mem, lower_bounds<Label>& lbs,
       std::vector<std::pair<edge const*, int>> const& path, time interval_begin,
       time interval_end, std::vector<Label*>& labels) {
     auto const start =
