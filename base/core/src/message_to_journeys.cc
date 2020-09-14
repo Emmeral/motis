@@ -164,6 +164,8 @@ journey convert(Connection const* conn) {
   journey.night_penalty_ = conn->night_penalty();
   journey.db_costs_ = conn->db_costs();
   journey.accessibility_ = get_accessibility(journey);
+  journey.occupancy_ = conn->occupancy();
+  journey.occupancy_max_ = conn->occupancy_max();
 
   return journey;
 }

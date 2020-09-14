@@ -328,7 +328,7 @@ struct rule_service_route_builder {
       if (traffic_days.test(day_idx)) {
         lcons.push_back(
             gb_.section_to_connection(get_or_create_trips(services, day_idx),
-                                      services, day_idx, 0, adjusted));
+                                      services, day_idx, 0, adjusted, 0));
         adjusted = false;
       }
     }

@@ -1,12 +1,13 @@
 #pragma once
 
-#include <motis/routing/label/criteria/transfer_classes.h>
 #include "motis/routing/label/comparator.h"
 #include "motis/routing/label/criteria/absurdity.h"
 #include "motis/routing/label/criteria/accessibility.h"
 #include "motis/routing/label/criteria/late_connections.h"
 #include "motis/routing/label/criteria/no_intercity.h"
+#include "motis/routing/label/criteria/occupancy.h"
 #include "motis/routing/label/criteria/price.h"
+#include "motis/routing/label/criteria/transfer_classes.h"
 #include "motis/routing/label/criteria/transfers.h"
 #include "motis/routing/label/criteria/travel_time.h"
 #include "motis/routing/label/criteria/weighted.h"
@@ -136,17 +137,35 @@ using price_transfer_classes_label = label<
     comparator<transfers_dominance>>;
 
 template <search_dir Dir>
-using transfer_classes_label =
+using occupancy_label =
     label<Dir, MAX_TRAVEL_TIME, false, get_travel_time_lb,
-          label_data<travel_time, transfers, transfer_classes, absurdity>,
+          label_data<travel_time, transfers, occupancy, absurdity>,
           initializer<travel_time_initializer, transfers_initializer,
-                      transfer_classes_initializer, absurdity_initializer>,
+                      occupancy_initializer, absurdity_initializer>,
           updater<travel_time_updater, transfers_updater,
-                  transfer_classes_updater, absurdity_updater>,
+                  occupancy_updater<false>, absurdity_updater>,
           filter<travel_time_filter, transfers_filter>,
           dominance<absurdity_tb, travel_time_dominance, transfers_dominance,
-                    transfer_classes_max_dominance>,
+                     occupancy_dominance_max>,
           dominance<absurdity_post_search_tb, travel_time_alpha_dominance,
-                    transfers_dominance, transfer_classes_max_dominance>,
+                    transfers_dominance,
+                    occupancy_dominance_max>,
           comparator<transfers_dominance>>;
+
+template <search_dir Dir>
+using price_occupancy_label = label<
+    Dir, MAX_TRAVEL_TIME, false, get_travel_time_lb,
+    label_data<travel_time, transfers, price, occupancy, absurdity>,
+    initializer<travel_time_initializer, transfers_initializer,
+                price_initializer, occupancy_initializer,
+                absurdity_initializer>,
+    updater<travel_time_updater, transfers_updater, price_updater,
+            occupancy_updater<false>, absurdity_updater>,
+    filter<travel_time_filter, transfers_filter>,
+    dominance<absurdity_tb, travel_time_dominance, transfers_dominance,
+              price_dominance, occupancy_dominance_max>,
+    dominance<absurdity_post_search_tb, travel_time_alpha_dominance,
+              transfers_dominance, price_dominance,
+              occupancy_dominance_max>,
+    comparator<transfers_dominance>>;
 }  // namespace motis::routing
