@@ -82,7 +82,7 @@ struct search {
       if (!lbs.is_valid_time_diff(
               lbs.time_from_node(q.from_))) {  // condition already checked?
 
-        return search_result(lb_result);  // TODO constructor wrong
+        return search_result(lb_result);
       }
     } else if (!q.use_start_metas_) {
       if (!lbs.is_valid_time_diff(

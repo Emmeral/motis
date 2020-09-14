@@ -21,7 +21,7 @@ struct price {
   bool ic_, ice_;
 };
 
-struct price_inititalizer {
+struct price_initializer {
   template <typename Label, typename LowerBounds>
   static void init(Label& l, LowerBounds&) {
     l.total_price_ = 0;

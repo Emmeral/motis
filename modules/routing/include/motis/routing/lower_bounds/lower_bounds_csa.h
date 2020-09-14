@@ -42,7 +42,7 @@ public:
       time_diff_t since_last_valid = this->search_direction_ == search_dir::FWD
                                          ? current_time - bound.last_time_valid
                                          : bound.last_time_valid - current_time;
-      return std::max(0u, bound.time_diff_ - since_last_valid);
+      return bound.time_diff_ - std::min(bound.time_diff_, since_last_valid);
     }
   }
 
