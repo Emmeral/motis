@@ -53,10 +53,13 @@ inline search_result search_dispatch(search_query const& q,
       return get_connections<late_connections_label_for_tests<Dir>, Gen>(q);
     case SearchType_Accessibility:
       return get_connections<accessibility_label<Dir>, Gen>(q);
-    case SearchType_Price:
-      return get_connections<price_label<Dir>, Gen>(q);
+    case SearchType_Price: return get_connections<price_label<Dir>, Gen>(q);
     case SearchType_PriceTransferClasses:
       return get_connections<price_transfer_classes_label<Dir>, Gen>(q);
+    case SearchType_Occupancy:
+      return get_connections<occupancy_label<Dir>, Gen>(q);
+    case SearchType_PriceOccupancy:
+      return get_connections<price_occupancy_label<Dir>, Gen>(q);
     default: break;
   }
   throw std::system_error(error::search_type_not_supported);

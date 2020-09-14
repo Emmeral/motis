@@ -100,6 +100,8 @@ enum SearchType : byte {
   DefaultPriceRegional,
   Price,
   PriceTransferClasses,
+  Occupancy,
+  PriceOccupancy
 }
 
 // ----------------------------------------------------------------------------
