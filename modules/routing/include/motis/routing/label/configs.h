@@ -22,7 +22,7 @@ namespace motis::routing {
 
 template <search_dir Dir>
 using default_label =
-    label<Dir, MAX_TRAVEL_TIME, false, get_travel_time_lb,
+    label<Dir, LOWER_BOUNDS_FILTER_TRAVEL_TIME, false, get_travel_time_lb,
           label_data<travel_time, transfers, absurdity>,
           initializer<travel_time_initializer, transfers_initializer,
                       absurdity_initializer>,
@@ -138,7 +138,7 @@ using price_transfer_classes_label = label<
 
 template <search_dir Dir>
 using occupancy_label =
-    label<Dir, MAX_TRAVEL_TIME, false, get_travel_time_lb,
+    label<Dir, LOWER_BOUNDS_FILTER_TRAVEL_TIME, false, get_travel_time_lb,
           label_data<travel_time, transfers, occupancy, absurdity>,
           initializer<travel_time_initializer, transfers_initializer,
                       occupancy_initializer, absurdity_initializer>,

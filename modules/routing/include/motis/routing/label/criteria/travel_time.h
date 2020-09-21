@@ -3,6 +3,7 @@
 namespace motis::routing {
 
 constexpr duration MAX_TRAVEL_TIME = 1440;
+constexpr duration LOWER_BOUNDS_FILTER_TRAVEL_TIME = MAX_TRAVEL_TIME * 2;
 
 struct travel_time {
   duration travel_time_, travel_time_lb_;
@@ -97,7 +98,7 @@ struct travel_time_alpha_dominance {
 struct travel_time_filter {
   template <typename Label>
   static bool is_filtered(Label const& l) {
-    return l.travel_time_lb_ > MAX_TRAVEL_TIME;
+    return l.travel_time_lb_ > LOWER_BOUNDS_FILTER_TRAVEL_TIME;
   }
 };
 

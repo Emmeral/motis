@@ -32,14 +32,12 @@ public:
 
   time_diff_t time_from_label(Label& l) const override{
     auto const csa = csa_lower_bounds_.time_from_label(l);
-    auto const cg = cg_lower_bounds.time_from_label(l);
-    return std::max(csa, cg);
+    return csa;
   }
 
   time_diff_t time_from_node(node const* n) const override {
     auto const csa = csa_lower_bounds_.time_from_node(n);
-    auto const cg = cg_lower_bounds.time_from_node(n);
-    return std::max(csa, cg);
+    return csa;
   }
   bool is_valid_time_diff(time_diff_t time) const override {
     return csa_lower_bounds_.is_valid_time_diff(time);
@@ -61,7 +59,6 @@ public:
   }
 
   bool calculate_timing(){
-    cg_lower_bounds.calculate_timing();
     return csa_lower_bounds_.calculate();
   }
   void calculate_transfers(){

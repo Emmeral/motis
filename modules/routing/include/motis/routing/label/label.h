@@ -71,6 +71,10 @@ struct label : public Data {  // NOLINT
     return Dominance::dominates(false, *this, o);
   }
 
+  bool is_on_optimal_journey() const {
+    return false;
+  }
+
   bool incomparable(label const& o) const {
     return current_begin() < o.current_begin() ||
            current_end() > o.current_end();

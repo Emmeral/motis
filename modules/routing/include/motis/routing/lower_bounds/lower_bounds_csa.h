@@ -38,11 +38,7 @@ public:
         current_time == bound.last_time_valid) {
       return bound.time_diff_;
     } else {
-
-      time_diff_t since_last_valid = this->search_direction_ == search_dir::FWD
-                                         ? current_time - bound.last_time_valid
-                                         : bound.last_time_valid - current_time;
-      return bound.time_diff_ - std::min(bound.time_diff_, since_last_valid);
+      return MAX_TRAVEL_TIME;
     }
   }
 
@@ -62,7 +58,7 @@ public:
         current_time == bound.last_time_valid) {
       return bound.transfer_amount_;
     } else {
-      return 0;
+      return MAX_TRANSFERS;
     }
   }
 

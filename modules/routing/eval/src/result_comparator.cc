@@ -62,10 +62,17 @@ void print(journey_meta_data const& con) {
     return ss.str();
   };
 
+  auto const format_occupancy = [](journey_meta_data const& j) {
+    std::stringstream ss;
+    ss << "Occ: " <<  j.occupancy_ << "/" << j.occ_max_;
+    return ss.str();
+  };
+
   std::cout << std::right << std::setw(13) << format_duration(con.duration_)  //
             << " [" << format_time(con.get_departure_time()) << " - "
             << format_time(con.get_arrival_time()) << "]\t"
             << format_price(con.price_) << "\t"//
+            << format_occupancy(con) << "\t"
             << std::setw(5) << con.transfers_;
 }
 

@@ -5,6 +5,7 @@
 namespace motis::routing {
 
 constexpr duration MAX_TRANSFERS = 7;
+constexpr duration LOWER_BOUNDS_FILTER_TRANSFERS = MAX_TRANSFERS * 2;
 
 struct transfers {
   uint8_t transfers_, transfers_lb_;
@@ -60,7 +61,7 @@ struct transfers_dominance {
 struct transfers_filter {
   template <typename Label>
   static bool is_filtered(Label const& l) {
-    return l.transfers_lb_ > MAX_TRANSFERS;
+    return l.transfers_lb_ > LOWER_BOUNDS_FILTER_TRANSFERS;
   }
 };
 
