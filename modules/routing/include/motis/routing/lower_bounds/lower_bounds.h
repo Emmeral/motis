@@ -19,17 +19,32 @@ public:
   lower_bounds(search_query const& routing_query, search_dir search_direction)
       : routing_query_(routing_query), search_direction_(search_direction) {}
 
-  virtual time_diff_t time_from_node(node const* n) const =0;
-  virtual time_diff_t time_from_label(Label& l) const{
+  virtual time_diff_t time_from_node(node const* n) const = 0;
+  virtual time_diff_t time_from_label(Label& l) const {
     return time_from_node(l.get_node());
   }
   virtual bool is_valid_time_diff(time_diff_t diff) const = 0;
 
-  virtual interchanges_t transfers_from_label(Label& l) const{
-      return transfers_from_node(l.get_node());
+  virtual interchanges_t transfers_from_label(Label& l) const {
+    return transfers_from_node(l.get_node());
   };
   virtual interchanges_t transfers_from_node(node const* n) const = 0;
   virtual bool is_valid_transfer_amount(interchanges_t amount) const = 0;
+
+  /**
+   * Returns whether the label is on an optimal journey regarding the travel
+   * time. If not known whether this is true returns false.
+   * @param l
+   * @return true if on optimal journey regarding travel time
+   */
+  virtual bool is_on_optimal_time_journey(Label& /*l*/) const { return false; }
+  /**
+   * Returns whether the label is on an optimal journey regarding transfers.
+   * If not known whether this is true returns false.
+   * @param l
+   * @return true if on optimal journey regarding transfers
+   */
+  virtual bool is_on_optimal_transfers_journey(Label& /*l*/) const { return false; }
 
   lower_bounds_stats get_stats() const {
 

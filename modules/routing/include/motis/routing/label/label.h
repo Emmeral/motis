@@ -1,6 +1,7 @@
 #pragma once
 
 #include "motis/core/schedule/edges.h"
+#include "motis/routing/label/optimality.h"
 #include "motis/routing/lower_bounds/lower_bounds.h"
 
 namespace motis::routing {
@@ -11,7 +12,8 @@ struct label_data : public DataClass... {};
 template <search_dir Dir, std::size_t MaxBucket,
           bool PostSearchDominanceEnabled, typename GetBucket, typename Data,
           typename Init, typename Updater, typename Filter, typename Dominance,
-          typename PostSearchDominance, typename Comparator>
+          typename PostSearchDominance, typename Comparator,
+          typename Optimality = optimality<>>
 struct label : public Data {  // NOLINT
   enum : std::size_t { MAX_BUCKET = MaxBucket };
 
@@ -71,8 +73,19 @@ struct label : public Data {  // NOLINT
     return Dominance::dominates(false, *this, o);
   }
 
+  /**
+   * Ignores incomparable restrictions, because it does not compare labels on
+   * the same node.
+   * @param o another label
+   * @return true if this label dominates the other label (the other label can
+   * not get better than this label no matter its further route)
+   */
+  bool dominates_as_result(label const& o) const {
+    return Dominance::dominates(false, *this, o);
+  }
+
   bool is_on_optimal_journey() const {
-    return false;
+    return Optimality::is_on_optimal_journey(*this);
   }
 
   bool incomparable(label const& o) const {

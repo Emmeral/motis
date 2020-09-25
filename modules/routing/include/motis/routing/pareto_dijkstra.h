@@ -45,16 +45,20 @@ struct pareto_dijkstra {
     for (auto const& l : start_labels) {
       if (!l->is_filtered()) {
         node_labels_[l->get_node()->id_].emplace_back(l);
-        queue_.push(l);
+        if (l->is_on_optimal_journey()) {
+          optimals_.push_back(l);
+        } else {
+          queue_.push(l);
+        }
       }
     }
   }
 
   void search() {
-    stats_.start_label_count_ = queue_.size();
+    stats_.start_label_count_ = queue_.size() + optimals_.size();
     stats_.labels_created_ = label_store_.allocations();
 
-    while (!queue_.empty() || !equals_.empty()) {
+    while (!queue_.empty() || !equals_.empty() || !optimals_.empty()) {
       if ((stats_.labels_created_ > (max_labels_ / 2) && results_.empty()) ||
           stats_.labels_created_ > max_labels_) {
         stats_.max_label_quit_ = true;
@@ -64,10 +68,21 @@ struct pareto_dijkstra {
 
       // get best label
       Label* label = nullptr;
-      if (!equals_.empty()) {
+
+      if (!optimals_.empty()) {
+        label = optimals_.back();
+
+        stats_.optimals_max_size_ = std::max(
+            stats_.optimals_max_size_, static_cast<uint64_t>(optimals_.size()));
+
+        optimals_.pop_back();
+        stats_.labels_optimals_popped_++;
+        stats_.labels_popped_after_last_result_++;
+      } else if (!equals_.empty()) {
         label = equals_.back();
         equals_.pop_back();
         stats_.labels_equals_popped_++;
+        stats_.labels_popped_after_last_result_++;
       } else {
         label = queue_.top();
         stats_.priority_queue_max_size_ =
@@ -135,12 +150,15 @@ private:
 
     auto new_label = label_store_.create<Label>(blank);
     ++stats_.labels_created_;
+    ++stats_.labels_created_after_last_result_;
 
     if (edge.get_destination<Dir>()->id_ < station_node_count_ &&
         is_goal_[edge.get_destination<Dir>()->id_]) {
       add_result(new_label);
       if (stats_.labels_popped_until_first_result_ == 0) {
-        stats_.labels_popped_until_first_result_ = stats_.labels_popped_;
+        stats_.labels_popped_until_first_result_ =
+            stats_.labels_popped_ + stats_.labels_optimals_popped_ +
+            stats_.labels_optimals_popped_;
       }
       return;
     }
@@ -151,7 +169,9 @@ private:
       if (add_label_to_node(new_label, edge.get_destination<Dir>())) {
         // if the new_label is as good as label we don't have to push it into
         // the queue
-        if (!FORWARDING || l < new_label) {
+        if (new_label->is_on_optimal_journey()) {
+          optimals_.push_back(new_label);
+        } else if (!FORWARDING || l < new_label) {
           queue_.push(new_label);
         } else {
           equals_.push_back(new_label);
@@ -180,6 +200,7 @@ private:
     }
     results_.push_back(terminal_label);
     stats_.labels_popped_after_last_result_ = 0;
+    stats_.labels_created_after_last_result_ = 0;
     return true;
   }
 
@@ -207,7 +228,7 @@ private:
 
   bool dominated_by_results(Label* label) {
     for (auto const& result : results_) {
-      if (result->dominates(*label)) {
+      if (result->dominates_as_result(*label)) {
         return true;
       }
     }
@@ -237,6 +258,9 @@ private:
   std::vector<std::vector<Label*>>& node_labels_;
   dial<Label*, Label::MAX_BUCKET, get_bucket> queue_;
   std::vector<Label*> equals_;
+
+  std::vector<Label*> optimals_;
+
   mcd::hash_map<node const*, std::vector<edge>> additional_edges_;
   std::vector<Label*> results_;
   LowerBounds& lower_bounds_;

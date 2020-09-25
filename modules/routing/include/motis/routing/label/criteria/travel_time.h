@@ -3,10 +3,10 @@
 namespace motis::routing {
 
 constexpr duration MAX_TRAVEL_TIME = 1440;
-constexpr duration LOWER_BOUNDS_FILTER_TRAVEL_TIME = MAX_TRAVEL_TIME * 2;
 
 struct travel_time {
   duration travel_time_, travel_time_lb_;
+  bool on_optimal_time_journey_;
 };
 
 struct get_travel_time_lb {
@@ -20,6 +20,8 @@ struct travel_time_initializer {
   template <typename Label, typename LowerBounds>
   static void init(Label& l, LowerBounds& lb) {
     l.travel_time_ = std::abs(l.now_ - l.start_);
+
+    l.on_optimal_time_journey_ = lb.is_on_optimal_time_journey(l);
 
     auto const lb_val = lb.time_from_label(l);
     if (lb.is_valid_time_diff(lb_val)) {
@@ -35,6 +37,9 @@ struct travel_time_updater {
   static void update(Label& l, edge_cost const& ec, LowerBounds& lb) {
     l.travel_time_ += ec.time_;
 
+    l.on_optimal_time_journey_ =
+        l.pred_->on_optimal_time_journey_ && lb.is_on_optimal_time_journey(l);
+
     auto const lb_val = lb.time_from_label(l);
     if (lb.is_valid_time_diff(lb_val)) {
       l.travel_time_lb_ = l.travel_time_ + lb_val;
@@ -48,8 +53,14 @@ struct travel_time_dominance {
   template <typename Label>
   struct domination_info {
     domination_info(Label const& a, Label const& b)
-        : greater_(a.travel_time_lb_ > b.travel_time_lb_),
-          smaller_(a.travel_time_lb_ < b.travel_time_lb_) {}
+        : greater_(
+              (b.on_optimal_time_journey_ && !a.on_optimal_time_journey_) ||
+              (a.on_optimal_time_journey_ == b.on_optimal_time_journey_ &&
+               a.travel_time_lb_ > b.travel_time_lb_)),
+          smaller_(
+              (a.on_optimal_time_journey_ && !b.on_optimal_time_journey_ ) ||
+              (a.on_optimal_time_journey_ == b.on_optimal_time_journey_ &&
+               a.travel_time_lb_ < b.travel_time_lb_)) {}
     inline bool greater() const { return greater_; }
     inline bool smaller() const { return smaller_; }
     bool greater_, smaller_;
@@ -98,7 +109,14 @@ struct travel_time_alpha_dominance {
 struct travel_time_filter {
   template <typename Label>
   static bool is_filtered(Label const& l) {
-    return l.travel_time_lb_ > LOWER_BOUNDS_FILTER_TRAVEL_TIME;
+    return l.travel_time_lb_ > MAX_TRAVEL_TIME;
+  }
+};
+
+struct travel_time_optimality {
+  template <typename Label>
+  static bool is_on_optimal_journey(Label const& l) {
+    return l.on_optimal_time_journey_;
   }
 };
 

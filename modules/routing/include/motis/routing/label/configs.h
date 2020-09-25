@@ -22,7 +22,7 @@ namespace motis::routing {
 
 template <search_dir Dir>
 using default_label =
-    label<Dir, LOWER_BOUNDS_FILTER_TRAVEL_TIME, false, get_travel_time_lb,
+    label<Dir, MAX_TRAVEL_TIME, false, get_travel_time_lb,
           label_data<travel_time, transfers, absurdity>,
           initializer<travel_time_initializer, transfers_initializer,
                       absurdity_initializer>,
@@ -31,7 +31,8 @@ using default_label =
           dominance<absurdity_tb, travel_time_dominance, transfers_dominance>,
           dominance<absurdity_post_search_tb, travel_time_alpha_dominance,
                     transfers_dominance>,
-          comparator<transfers_dominance>>;
+          comparator<transfers_dominance>,
+          optimality<travel_time_optimality, transfers_optimality>>;
 
 template <search_dir Dir>
 using default_simple_label = label<
@@ -117,7 +118,8 @@ using price_label =
                     price_dominance>,
           dominance<absurdity_post_search_tb, travel_time_alpha_dominance,
                     transfers_dominance, price_dominance>,
-          comparator<transfers_dominance>>;
+          comparator<transfers_dominance>,
+          optimality<travel_time_optimality, transfers_optimality>>;
 
 template <search_dir Dir>
 using price_transfer_classes_label = label<
@@ -138,7 +140,7 @@ using price_transfer_classes_label = label<
 
 template <search_dir Dir>
 using occupancy_label =
-    label<Dir, LOWER_BOUNDS_FILTER_TRAVEL_TIME, false, get_travel_time_lb,
+    label<Dir, MAX_TRAVEL_TIME, false, get_travel_time_lb,
           label_data<travel_time, transfers, occupancy, absurdity>,
           initializer<travel_time_initializer, transfers_initializer,
                       occupancy_initializer, absurdity_initializer>,

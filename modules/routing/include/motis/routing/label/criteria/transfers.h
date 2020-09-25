@@ -5,10 +5,10 @@
 namespace motis::routing {
 
 constexpr duration MAX_TRANSFERS = 7;
-constexpr duration LOWER_BOUNDS_FILTER_TRANSFERS = MAX_TRANSFERS * 2;
 
 struct transfers {
   uint8_t transfers_, transfers_lb_;
+  bool on_optimal_transfers_journey_;
 };
 
 struct transfers_initializer {
@@ -16,6 +16,7 @@ struct transfers_initializer {
   static void init(Label& l, LowerBounds& lb) {
     l.transfers_ = 0;
 
+    l.on_optimal_transfers_journey_ = lb.is_on_optimal_transfers_journey(l);
     auto const lb_val = lb.transfers_from_label(l);
     if (lb.is_valid_transfer_amount(lb_val)) {
       l.transfers_lb_ = lb_val;
@@ -32,6 +33,9 @@ struct transfers_updater {
       ++l.transfers_;
     }
 
+    l.on_optimal_transfers_journey_ = l.pred_->on_optimal_transfers_journey_ &&
+                                      lb.is_on_optimal_transfers_journey(l);
+
     auto const lb_val = lb.transfers_from_label(l);
     if (lb.is_valid_transfer_amount(lb_val)) {
       l.transfers_lb_ = l.transfers_ + lb_val;
@@ -45,8 +49,16 @@ struct transfers_dominance {
   template <typename Label>
   struct domination_info {
     domination_info(Label const& a, Label const& b)
-        : greater_(a.transfers_lb_ > b.transfers_lb_),
-          smaller_(a.transfers_lb_ < b.transfers_lb_) {}
+        : greater_((b.on_optimal_transfers_journey_ &&
+                    !a.on_optimal_transfers_journey_) ||
+                   (a.on_optimal_transfers_journey_ ==
+                        b.on_optimal_transfers_journey_ &&
+                    a.transfers_lb_ > b.transfers_lb_)),
+          smaller_((a.on_optimal_transfers_journey_ &&
+                    !b.on_optimal_transfers_journey_) ||
+                   (a.on_optimal_transfers_journey_ ==
+                        b.on_optimal_transfers_journey_ &&
+                    a.transfers_lb_ < b.transfers_lb_)) {}
     inline bool greater() const { return greater_; }
     inline bool smaller() const { return smaller_; }
     bool greater_, smaller_;
@@ -61,7 +73,14 @@ struct transfers_dominance {
 struct transfers_filter {
   template <typename Label>
   static bool is_filtered(Label const& l) {
-    return l.transfers_lb_ > LOWER_BOUNDS_FILTER_TRANSFERS;
+    return l.transfers_lb_ > MAX_TRANSFERS;
+  }
+};
+
+struct transfers_optimality {
+  template <typename Label>
+  static bool is_on_optimal_journey(Label const& l) {
+    return l.on_optimal_transfers_journey_;
   }
 };
 
