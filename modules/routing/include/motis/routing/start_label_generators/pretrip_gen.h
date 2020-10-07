@@ -8,7 +8,7 @@
 #include "utl/to_vec.h"
 
 #include "motis/core/schedule/schedule.h"
-#include "motis/routing/lower_bounds/lower_bounds.h"
+#include "motis/routing/lower_bounds/implementations/lower_bounds.h"
 #include "motis/routing/mem_manager.h"
 #include "motis/routing/start_label_generators/base_gen.h"
 #include "motis/routing/start_label_generators/gen_util.h"

@@ -33,8 +33,7 @@ struct transfers_updater {
       ++l.transfers_;
     }
 
-    l.on_optimal_transfers_journey_ = l.pred_->on_optimal_transfers_journey_ &&
-                                      lb.is_on_optimal_transfers_journey(l);
+    l.on_optimal_transfers_journey_ = lb.is_on_optimal_transfers_journey(l);
 
     auto const lb_val = lb.transfers_from_label(l);
     if (lb.is_valid_transfer_amount(lb_val)) {

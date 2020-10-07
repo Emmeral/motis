@@ -2,9 +2,9 @@
 
 #include <motis/routing/lower_bounds/lower_bounds_factory.h>
 #include "motis/csa/build_csa_timetable.h"
-#include "motis/routing/lower_bounds/lower_bounds_const_graph.h"
-#include "motis/routing/lower_bounds/lower_bounds_csa.h"
-#include "motis/routing/lower_bounds/lower_bounds_none.h"
+#include "motis/routing/lower_bounds/implementations/lower_bounds_const_graph.h"
+#include "motis/routing/lower_bounds/implementations/lower_bounds_csa.h"
+#include "motis/routing/lower_bounds/implementations/lower_bounds_none.h"
 #include "motis/routing/search_query.h"
 #include "utl/to_vec.h"
 
@@ -12,7 +12,7 @@
 
 #include "motis/core/common/timing.h"
 #include "motis/core/schedule/schedule.h"
-#include "motis/routing/lower_bounds/lower_bounds.h"
+#include "motis/routing/lower_bounds/implementations/lower_bounds.h"
 #include "motis/routing/output/labels_to_journey.h"
 #include "motis/routing/pareto_dijkstra.h"
 

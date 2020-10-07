@@ -37,8 +37,7 @@ struct travel_time_updater {
   static void update(Label& l, edge_cost const& ec, LowerBounds& lb) {
     l.travel_time_ += ec.time_;
 
-    l.on_optimal_time_journey_ =
-        l.pred_->on_optimal_time_journey_ && lb.is_on_optimal_time_journey(l);
+    l.on_optimal_time_journey_ = lb.is_on_optimal_time_journey(l);
 
     auto const lb_val = lb.time_from_label(l);
     if (lb.is_valid_time_diff(lb_val)) {

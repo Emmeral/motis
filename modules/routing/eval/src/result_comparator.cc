@@ -78,7 +78,7 @@ void print(journey_meta_data const& con) {
 
 void print_empty() {
   std::cout << std::setw(27) << std::left << "-"
-            << "\t-\t" << std::setw(5) << "-";
+            << "\t-\t-\t" << std::setw(5) << "-";
 }
 
 bool print_differences(response const& r1, response const& r2,

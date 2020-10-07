@@ -41,7 +41,6 @@ private:
   bool extended_lb_stats_{false};
 
   std::unique_ptr<csa::csa_timetable> csa_timetable_;
-  std::unique_ptr<csa::csa_timetable> csa_timetable_ignored_restrictions_;
 };
 
 }  // namespace motis::routing

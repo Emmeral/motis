@@ -1,7 +1,7 @@
 #pragma once
 
 #include "motis/hash_map.h"
-#include "motis/routing/lower_bounds/lower_bounds.h"
+#include "lower_bounds.h"
 
 #include "motis/core/common/timing.h"
 #include "motis/core/schedule/constant_graph.h"
@@ -59,22 +59,41 @@ public:
   time_diff_t time_from_node(node const* n) const override {
     return travel_time_[n];
   }
-  bool is_valid_time_diff(time_diff_t time) const override{
-      return travel_time_.is_reachable(time);
+  bool is_valid_time_diff(time_diff_t time) const override {
+    return travel_time_.is_reachable(time);
   };
-  interchanges_t transfers_from_node(node const* n) const override{
+  interchanges_t transfers_from_node(node const* n) const override {
     return transfers_[n];
   }
-  bool is_valid_transfer_amount(interchanges_t amount) const override{
+  bool is_valid_transfer_amount(interchanges_t amount) const override {
     return transfers_.is_reachable(amount);
   };
 
-  void calculate_timing(){
-    travel_time_.run();
+  lower_bounds_result<Label> calculate() override {
+
+    auto result = lower_bounds_result<Label>{};
+
+    MOTIS_START_TIMING(travel_time_timing);
+    calculate_timing();
+    MOTIS_STOP_TIMING(travel_time_timing);
+
+    result.travel_time_lb_ = MOTIS_TIMING_MS(travel_time_timing);
+
+    // questionable if condition might be removed
+    if (!is_valid_time_diff(time_from_node(this->routing_query_.from_))) {
+      result.target_reachable = false;
+      return result;
+    }
+
+    MOTIS_START_TIMING(transfers_timing);
+    calculate_transfers();
+    MOTIS_STOP_TIMING(transfers_timing);
+    result.transfers_lb_ = MOTIS_TIMING_MS(transfers_timing);
+    result.total_lb = result.transfers_lb_ + result.travel_time_lb_;
+    return result;
   }
-  void calculate_transfers(){
-    transfers_.run();
-  }
+  void calculate_timing() { travel_time_.run(); }
+  void calculate_transfers() { transfers_.run(); }
 
 private:
   mcd::hash_map<unsigned, std::vector<simple_edge>> additional_time_edges_;

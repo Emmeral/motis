@@ -1,6 +1,6 @@
 #pragma once
 
-#include "motis/routing/lower_bounds/lower_bounds.h"
+#include "motis/routing/lower_bounds/implementations/lower_bounds.h"
 
 #include "motis/core/common/timing.h"
 
@@ -25,6 +25,10 @@ public:
   };
   bool is_valid_transfer_amount(interchanges_t /* amount */) const override {
     return true;
+  }
+
+  lower_bounds_result<Label> calculate() override{
+    return lower_bounds_result<Label>{};
   }
 
 private:
