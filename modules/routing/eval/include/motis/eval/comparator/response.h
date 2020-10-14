@@ -69,7 +69,7 @@ struct journey_meta_data {
   unsigned duration_;
   unsigned transfers_;
   uint32_t price_;
-  uint8_t occ_max_;
+  uint32_t occ_max_;
   uint32_t occupancy_;
 };
 
