@@ -148,11 +148,11 @@ using occupancy_label =
                   occupancy_updater<false>, absurdity_updater>,
           filter<travel_time_filter, transfers_filter>,
           dominance<absurdity_tb, travel_time_dominance, transfers_dominance,
-                     occupancy_dominance_max>,
-          dominance<absurdity_post_search_tb, travel_time_alpha_dominance,
-                    transfers_dominance,
                     occupancy_dominance_max>,
-          comparator<transfers_dominance>>;
+          dominance<absurdity_post_search_tb, travel_time_alpha_dominance,
+                    transfers_dominance, occupancy_dominance_max>,
+          comparator<transfers_dominance>,
+          optimality<travel_time_optimality, transfers_optimality>>;
 
 template <search_dir Dir>
 using price_occupancy_label = label<

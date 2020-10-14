@@ -3,8 +3,8 @@
 #include <motis/routing/lower_bounds/lower_bounds_factory.h>
 #include "motis/csa/build_csa_timetable.h"
 #include "motis/routing/lower_bounds/implementations/lower_bounds_const_graph.h"
-#include "motis/routing/lower_bounds/implementations/lower_bounds_csa.h"
 #include "motis/routing/lower_bounds/implementations/lower_bounds_none.h"
+#include "motis/routing/lower_bounds/implementations/lower_bounds_optimality_delegate.h"
 #include "motis/routing/search_query.h"
 #include "utl/to_vec.h"
 
@@ -34,6 +34,7 @@ struct search_result {
     stats_ = statistics();
     stats_.total_lb = lb_result.total_lb;
     stats_.travel_time_lb_ = lb_result.travel_time_lb_;
+    stats_.optimality_lb_ = lb_result.optimality_lb_;
     stats_.transfers_lb_ = lb_result.transfers_lb_;
   }
   statistics stats_;

@@ -24,7 +24,8 @@ struct search_query {
   bool use_dest_metas_{false};
   bool use_start_footpaths_{false};
   light_connection const* lcon_{nullptr};
-  lower_bounds_type lb_type{lower_bounds_type::CG};
+  lower_bounds_type lb_type_{lower_bounds_type::CG};
+  optimality_type optimality_type_{optimality_type::NONE};
   // only set if lower_bounds_type::CSA is used
   motis::csa::csa_timetable const* csa_timetable{nullptr};
   // true if the response shall contain extended stats about the lower bounds

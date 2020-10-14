@@ -31,6 +31,7 @@ struct statistics {
   uint64_t labels_optimals_popped_{};
   uint64_t travel_time_lb_{};
   uint64_t transfers_lb_{};
+  uint64_t optimality_lb_{};
   uint64_t total_lb{};
   uint64_t price_l_b_{};
   uint64_t total_calculation_time_{};
@@ -88,6 +89,7 @@ struct statistics {
     add_entry("total_calculation_time", s.total_calculation_time_);
     add_entry("transfers_lb", s.transfers_lb_);
     add_entry("travel_time_lb", s.travel_time_lb_);
+    add_entry("optimality_lb", s.optimality_lb_);
     add_entry("total_lb", s.total_lb);
     add_entry("interval_extensions", s.interval_extensions_);
 
@@ -130,6 +132,7 @@ struct statistics {
          {"total_calculation_time", s.total_calculation_time_},
          {"transfers_lb", s.transfers_lb_},
          {"travel_time_lb", s.travel_time_lb_},
+         {"optimality_lb", s.optimality_lb_},
          {"total_lb", s.total_lb},
          {"interval_extensions", s.interval_extensions_},
          {"average_lb_travel_time", s.average_lb_travel_time_},
