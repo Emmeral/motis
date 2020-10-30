@@ -73,6 +73,12 @@ struct label : public Data {  // NOLINT
     if (incomparable(o)) {
       return false;
     }
+    // a label not on an optimal journey can't dominate an optimal label per
+    // definition
+    if (o.is_on_optimal_journey() && !is_on_optimal_journey()) {
+      return false;
+    }
+
     return Dominance::dominates(false, *this, o);
   }
 

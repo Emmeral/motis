@@ -8,7 +8,7 @@ struct optimality;
 template <typename FirstOptimality, typename... RestOptimality>
 struct optimality<FirstOptimality, RestOptimality...> {
   template <typename Label>
-  static bool is_on_optimal_journey(Label& l) {
+  static bool is_on_optimal_journey(Label const& l) {
     return FirstOptimality::is_on_optimal_journey(l) ||
            optimality<RestOptimality...>::is_on_optimal_journey(l);
   }
@@ -17,7 +17,7 @@ struct optimality<FirstOptimality, RestOptimality...> {
 template <>
 struct optimality<> {
   template <typename Label>
-  static bool is_on_optimal_journey(Label&) {
+  static bool is_on_optimal_journey(Label const&) {
     return false;
   }
 };

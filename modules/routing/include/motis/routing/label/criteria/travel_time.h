@@ -53,29 +53,8 @@ struct travel_time_dominance {
   struct domination_info {
     domination_info(Label const& a, Label const& b)
         : greater_(a.travel_time_lb_ > b.travel_time_lb_),
-          smaller_(a.travel_time_lb_ < b.travel_time_lb_) {}
-    inline bool greater() const { return greater_; }
-    inline bool smaller() const { return smaller_; }
-    bool greater_, smaller_;
-  };
-  template <typename Label>
-  static domination_info<Label> dominates(Label const& a, Label const& b) {
-    return domination_info<Label>(a, b);
-  }
-};
-
-struct travel_time_result_dominance {
-  template <typename Label>
-  struct domination_info {
-    domination_info(Label const& a, Label const& b)
-        : greater_(a.travel_time_lb_ > b.travel_time_lb_),
           smaller_(a.travel_time_lb_ < b.travel_time_lb_) {
-
-      // b is always the result which may be "optimal"
-      if (b.on_optimal_time_journey_ && !a.on_optimal_time_journey_) {
-        greater_ = a.travel_time_lb_ > b.travel_time_lb_;
-        smaller_ = false;
-      }
+      
     }
     inline bool greater() const { return greater_; }
     inline bool smaller() const { return smaller_; }
@@ -86,6 +65,7 @@ struct travel_time_result_dominance {
     return domination_info<Label>(a, b);
   }
 };
+
 
 struct travel_time_alpha_dominance {
   template <typename Label>

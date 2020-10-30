@@ -61,27 +61,6 @@ struct transfers_dominance {
   }
 };
 
-struct transfers_result_dominance {
-  template <typename Label>
-  struct domination_info {
-    domination_info(Label const& a, Label const& b)
-        : greater_(a.transfers_lb_ > b.transfers_lb_),
-          smaller_(a.transfers_lb_ < b.transfers_lb_) {
-      if (b.on_optimal_time_journey_ && !a.on_optimal_time_journey_) {
-        greater_ = a.travel_time_lb_ > b.travel_time_lb_;
-        smaller_ = false;
-      }
-    }
-    inline bool greater() const { return greater_; }
-    inline bool smaller() const { return smaller_; }
-    bool greater_, smaller_;
-  };
-
-  template <typename Label>
-  static domination_info<Label> dominates(Label const& a, Label const& b) {
-    return domination_info<Label>(a, b);
-  }
-};
 
 struct transfers_merger {
   template <typename Label>
