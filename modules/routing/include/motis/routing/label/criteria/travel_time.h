@@ -52,19 +52,35 @@ struct travel_time_dominance {
   template <typename Label>
   struct domination_info {
     domination_info(Label const& a, Label const& b)
-        : greater_(
-              (b.on_optimal_time_journey_ && !a.on_optimal_time_journey_) ||
-              (a.on_optimal_time_journey_ == b.on_optimal_time_journey_ &&
-               a.travel_time_lb_ > b.travel_time_lb_)),
-          smaller_(
-              (a.on_optimal_time_journey_ && !b.on_optimal_time_journey_ ) ||
-              (a.on_optimal_time_journey_ == b.on_optimal_time_journey_ &&
-               a.travel_time_lb_ < b.travel_time_lb_)) {}
+        : greater_(a.travel_time_lb_ > b.travel_time_lb_),
+          smaller_(a.travel_time_lb_ < b.travel_time_lb_) {}
     inline bool greater() const { return greater_; }
     inline bool smaller() const { return smaller_; }
     bool greater_, smaller_;
   };
+  template <typename Label>
+  static domination_info<Label> dominates(Label const& a, Label const& b) {
+    return domination_info<Label>(a, b);
+  }
+};
 
+struct travel_time_result_dominance {
+  template <typename Label>
+  struct domination_info {
+    domination_info(Label const& a, Label const& b)
+        : greater_(a.travel_time_lb_ > b.travel_time_lb_),
+          smaller_(a.travel_time_lb_ < b.travel_time_lb_) {
+
+      // b is always the result which may be "optimal"
+      if (b.on_optimal_time_journey_ && !a.on_optimal_time_journey_) {
+        greater_ = a.travel_time_lb_ > b.travel_time_lb_;
+        smaller_ = false;
+      }
+    }
+    inline bool greater() const { return greater_; }
+    inline bool smaller() const { return smaller_; }
+    bool greater_, smaller_;
+  };
   template <typename Label>
   static domination_info<Label> dominates(Label const& a, Label const& b) {
     return domination_info<Label>(a, b);
@@ -102,6 +118,16 @@ struct travel_time_alpha_dominance {
   template <typename Label>
   static domination_info<Label> dominates(Label const& a, Label const& b) {
     return domination_info<Label>(a, b);
+  }
+};
+
+struct travel_time_merger {
+  template <typename Label>
+  static void merge_with_optimal_result(Label const& original_label,
+                                        Label const& result_label,
+                                        Label& merged_label) {
+    merged_label.travel_time_lb_ =
+        std::max(result_label.travel_time_lb_, original_label.travel_time_lb_);
   }
 };
 

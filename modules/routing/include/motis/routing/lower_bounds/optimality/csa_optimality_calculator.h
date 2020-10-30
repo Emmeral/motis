@@ -45,10 +45,9 @@ public:
         csa::implementation_type::CPU_SSE);
 
     for (auto const& csa_journey : response.journeys_) {
-
       journey j = csa::csa_to_journey(*sched, csa_journey);
 
-      for (auto const& s : j.stops_) {
+      for (auto& s : j.stops_) {
         process_single_stop(s, *sched);
       }
 
@@ -98,26 +97,28 @@ private:
     time departure_time;
     time arrival_time;
 
+    bool is_start_or_end{false};
+
     if (arrival_time_unix == 0) {
       arrival_time = 0;
+      is_start_or_end = true;
     } else {
       arrival_time =
           unix_to_motistime(sched.schedule_begin_, arrival_time_unix);
     }
 
+
     if (departure_time_unix == 0) {
+      is_start_or_end = true;  // if there is no departure it is the last station
       // TODO: does this work for backwards search?
       departure_time = arrival_time + station->transfer_time_;
     } else {
       departure_time =
           unix_to_motistime(sched.schedule_begin_, departure_time_unix);
     }
-
-    // TODO: is this only a approximation
-    bool is_interchange{false};
-    if (departure_time - arrival_time > station->transfer_time_) {
-      is_interchange = true;  // mark whether there was an interchange at a stop
-    }
+    // we have to specifically set interchange to true in case the last station
+    // is reached by foot or the first is left by foot
+    bool is_interchange = s.exit_ || s.enter_ || is_start_or_end;
     interval inter = {arrival_time, departure_time, is_interchange};
 
     optimal_map_[id].push_back(inter);
@@ -166,7 +167,7 @@ private:
           continue;  // skip already inserted or loops
         }
         time time_at_new_station = last_inserted_optimum.end_ + fp.duration_;
-        interval new_optimum = {time_at_new_station, time_at_new_station};
+        interval new_optimum = {time_at_new_station, time_at_new_station, true};
         optimal_map_[fp.to_station_].push_back(new_optimum);
       }
     }

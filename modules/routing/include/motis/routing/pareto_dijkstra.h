@@ -100,7 +100,7 @@ struct pareto_dijkstra {
         continue;
       }
 
-      if (dominated_by_results(label)) {
+      if (!feasible_considering_results(label)) {
         stats_.labels_dominated_by_results_++;
         continue;
       }
@@ -163,14 +163,15 @@ private:
       return;
     }
 
-    // if the label is not dominated by a former one for the same node...
-    //...add it to the queue
-    if (!dominated_by_results(new_label)) {
+    if (feasible_considering_results(new_label)) {
+      // if the label is not dominated by a former one for the same node...
+      //...add it to the queue
       if (add_label_to_node(new_label, edge.get_destination<Dir>())) {
-        // if the new_label is as good as label we don't have to push it into
-        // the queue
+
         if (new_label->is_on_optimal_journey()) {
           optimals_.push_back(new_label);
+          // if the new_label is as good as label we don't have to push it into
+          // the queue
         } else if (!FORWARDING || l < new_label) {
           queue_.push(new_label);
         } else {
@@ -226,14 +227,18 @@ private:
     return true;
   }
 
-  bool dominated_by_results(Label* label) {
+  bool feasible_considering_results(Label* label) {
+    return label->may_be_in_result_set(results_);
+    /**
     for (auto const& result : results_) {
-      if (result->dominates_as_result(*label)) {
+      if (result->dominates(*label)) {
         return true;
       }
     }
     return false;
+     */
   }
+
 
   void filter_results() {
     if (!Label::is_post_search_dominance_enabled()) {

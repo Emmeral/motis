@@ -1,6 +1,7 @@
 #pragma once
 
 #include "motis/core/schedule/edges.h"
+#include "motis/routing/label/merger.h"
 #include "motis/routing/label/optimality.h"
 #include "motis/routing/lower_bounds/implementations/lower_bounds.h"
 
@@ -13,7 +14,9 @@ template <search_dir Dir, std::size_t MaxBucket,
           bool PostSearchDominanceEnabled, typename GetBucket, typename Data,
           typename Init, typename Updater, typename Filter, typename Dominance,
           typename PostSearchDominance, typename Comparator,
-          typename Optimality = optimality<>>
+          typename Optimality = optimality<>,
+          typename Merger = merger<>,
+          typename ResultDominance = Dominance>
 struct label : public Data {  // NOLINT
   enum : std::size_t { MAX_BUCKET = MaxBucket };
 
@@ -74,14 +77,63 @@ struct label : public Data {  // NOLINT
   }
 
   /**
-   * Ignores incomparable restrictions, because it does not compare labels on
-   * the same node.
-   * @param o another label
-   * @return true if this label dominates the other label (the other label can
-   * not get better than this label no matter its further route)
+   * Returns true if this label has a chance to be in the given result set
    */
-  bool dominates_as_result(label const& o) const {
-    return Dominance::dominates(false, *this, o);
+  bool may_be_in_result_set(const std::vector<label*>& result_set) const {
+
+    // we already know that labels on optimal journeys will be a
+    // valid result
+    if (is_on_optimal_journey()) {
+      return true;
+    }
+
+    // the result which are comparable to the given label (considering start
+    // time etc.)
+    std::vector<label*> comparable_results;
+    std::copy_if(result_set.begin(), result_set.end(),
+                 std::back_inserter(comparable_results), [*this](label* r) {
+                   return r->current_begin() == this->current_begin();
+                 });
+
+    bool optimals_exist = false;
+
+    for (label* result : comparable_results) {
+      if (result->is_on_optimal_journey()) {
+        optimals_exist = true;
+
+        auto merged_label = Merger::merge_with_optimal_result(*this, *result);
+
+        bool merged_valid = true;
+        for (label* r : comparable_results) {
+          if (ResultDominance::dominates(false, *r, merged_label)) {
+            merged_valid = false;
+            break;
+          }
+        }
+        // if the merged label was not dominated the original label can be part
+        // of the result set
+        if (merged_valid) {
+          return true;
+        }
+      }
+    }
+
+    // if no merged label was not dominated the original label may never be part
+    // of the result set
+    if (optimals_exist) {
+      return false;
+    }
+
+    // if no optimal labels exists perform a default domination check
+    if (!optimals_exist) {
+      for (label* r : comparable_results) {
+        if (ResultDominance::dominates(false, *r, *this)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
   }
 
   bool is_on_optimal_journey() const {

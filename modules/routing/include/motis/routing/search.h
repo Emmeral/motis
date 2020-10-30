@@ -193,6 +193,7 @@ struct search {
     auto stats = pd.get_statistics();
     stats.travel_time_lb_ = lb_result.travel_time_lb_;
     stats.transfers_lb_ = lb_result.transfers_lb_;
+    stats.optimality_lb_ = lb_result.optimality_lb_;
     stats.total_lb = lb_result.total_lb;
     stats.pareto_dijkstra_ = MOTIS_TIMING_MS(pareto_dijkstra_timing);
     stats.interval_extensions_ = search_iterations - 1;
