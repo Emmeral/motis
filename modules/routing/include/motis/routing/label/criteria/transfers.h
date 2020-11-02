@@ -61,15 +61,31 @@ struct transfers_dominance {
   }
 };
 
-
-struct transfers_merger {
+struct transfers_result_dominance {
   template <typename Label>
-  static void merge_with_optimal_result(Label const& original_label,
-                                        Label const& result_label,
-                                        Label& merged_label) {
-    merged_label.transfers_lb_ =
-        std::max(result_label.transfers_lb_, original_label.transfers_lb_);
+  struct domination_info {
+    domination_info(Label const& a, Label const& b,
+                    Label const& optimal_result_to_merge)
+        : greater_(), smaller_() {
+      auto const used_transfers_lb =
+          std::max(b.transfers_lb_, optimal_result_to_merge.transfers_lb_);
+      greater_ = a.transfers_lb_ > used_transfers_lb;
+      smaller_ = a.transfers_lb_ < used_transfers_lb;
+    }
+    inline bool greater() const { return greater_; }
+    inline bool smaller() const { return smaller_; }
+    bool greater_, smaller_;
+  };
+
+  template <typename Label>
+  static domination_info<Label> result_dominates(
+      Label const& result, Label const& label,
+      Label const& optimal_result_to_merge) {
+    return domination_info<Label>(result, label, optimal_result_to_merge);
   }
+
+  typedef bool
+      has_result_dominates;  // hack for result dominates auto detection
 };
 
 struct transfers_filter {

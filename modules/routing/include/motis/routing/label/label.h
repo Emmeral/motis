@@ -15,8 +15,7 @@ template <search_dir Dir, std::size_t MaxBucket,
           typename Init, typename Updater, typename Filter, typename Dominance,
           typename PostSearchDominance, typename Comparator,
           typename Optimality = optimality<>,
-          typename Merger = merger<>,
-          typename ResultDominance = Dominance>
+          typename ResultDominance = void>
 struct label : public Data {  // NOLINT
   enum : std::size_t { MAX_BUCKET = MaxBucket };
 
@@ -102,38 +101,42 @@ struct label : public Data {  // NOLINT
                  });
 
     bool optimals_exist = false;
+    constexpr bool result_dominance_exists =
+        !std::is_same<ResultDominance, void>::value;
 
-    for (label* result : comparable_results) {
-      if (result->is_on_optimal_journey()) {
-        optimals_exist = true;
+    // we can only apply the improved domination if the result dominance
+    // template parameter is defined
+    if constexpr (result_dominance_exists) {
+      for (label* result : comparable_results) {
+        if (result->is_on_optimal_journey()) {
+          optimals_exist = true;
 
-        auto merged_label = Merger::merge_with_optimal_result(*this, *result);
-
-        bool merged_valid = true;
-        for (label* r : comparable_results) {
-          if (ResultDominance::dominates(false, *r, merged_label)) {
-            merged_valid = false;
-            break;
+          bool merged_valid = true;
+          for (label* r : comparable_results) {
+            if (ResultDominance::result_dominates(true, *r, *this, *result)) {
+              merged_valid = false;
+              break;
+            }
+          }
+          // if the merged label was not dominated the original label can be
+          // part of the result set
+          if (merged_valid) {
+            return true;
           }
         }
-        // if the merged label was not dominated the original label can be part
-        // of the result set
-        if (merged_valid) {
-          return true;
-        }
       }
-    }
 
-    // if no merged label was not dominated the original label may never be part
-    // of the result set
-    if (optimals_exist) {
-      return false;
+      // if no merged label was not dominated the original label may never be
+      // part of the result set
+      if (optimals_exist) {
+        return false;
+      }
     }
 
     // if no optimal labels exists perform a default domination check
     if (!optimals_exist) {
       for (label* r : comparable_results) {
-        if (ResultDominance::dominates(false, *r, *this)) {
+        if (Dominance::dominates(false, *r, *this)) {
           return false;
         }
       }
