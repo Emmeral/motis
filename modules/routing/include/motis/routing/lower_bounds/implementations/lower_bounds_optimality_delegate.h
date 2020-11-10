@@ -61,7 +61,7 @@ public:
 
     MOTIS_START_TIMING(optimality_timing);
     bool reachable = optimality_delegate_->calculate_optimality(
-        this->routing_query_, this->search_direction_);
+        this->routing_query_);
     MOTIS_STOP_TIMING(optimality_timing);
 
     lower_bounds_result<Label> r;

@@ -92,7 +92,7 @@ struct label : public Data {  // NOLINT
       return true;
     }
 
-    // the result which are comparable to the given label (considering start
+    // the results which are comparable to the given label (considering start
     // time etc.)
     std::vector<label*> comparable_results;
     std::copy_if(result_set.begin(), result_set.end(),

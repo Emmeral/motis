@@ -32,7 +32,7 @@ lower_bounds_result<Label> get_lower_bounds_for_query(
 
   if (q.optimality_type_ == optimality_type::CSA) {
 
-    auto optimality_delegate = std::make_unique<csa_optimality_calculator>();
+    auto optimality_delegate = std::make_unique<csa_optimality_calculator>(dir);
     auto lb_delegate = std::make_unique<lower_bounds_optimality_delegate<
         Label, lower_bounds<Label>, csa_optimality_calculator>>(
         q, dir, std::move(lbs), std::move(optimality_delegate));
