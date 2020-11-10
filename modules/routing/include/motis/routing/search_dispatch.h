@@ -44,20 +44,23 @@ inline search_result search_dispatch(search_query const& q,
         return get_connections<default_simple_label<Dir>, Gen>(q);
       }
     case SearchType_SingleCriterion:
-      // return get_connections<single_criterion_label<Dir>, Gen>(q); TODO: uncomment
+       return get_connections<single_criterion_label<Dir>, Gen>(q);
     case SearchType_SingleCriterionNoIntercity:
-      // return get_connections<single_criterion_no_intercity_label<Dir>, Gen>(q); TODO: uncomment
+      return get_connections<single_criterion_no_intercity_label<Dir>, Gen>(q);
     case SearchType_LateConnections:
       return get_connections<late_connections_label<Dir>, Gen>(q);
     case SearchType_LateConnectionsTest:
       return get_connections<late_connections_label_for_tests<Dir>, Gen>(q);
     case SearchType_Accessibility:
       return get_connections<accessibility_label<Dir>, Gen>(q);
-    case SearchType_Price: return get_connections<price_label<Dir>, Gen>(q);
+    case SearchType_Price:
+      return get_connections<price_label<Dir>, Gen>(q);
     case SearchType_PriceTransferClasses:
       return get_connections<price_transfer_classes_label<Dir>, Gen>(q);
     case SearchType_Occupancy:
       return get_connections<occupancy_label<Dir>, Gen>(q);
+    case SearchType_OccupancyBoth:
+      return get_connections<occupancy_both_label<Dir>, Gen>(q);
     case SearchType_PriceOccupancy:
       return get_connections<price_occupancy_label<Dir>, Gen>(q);
     default: break;

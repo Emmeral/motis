@@ -83,6 +83,7 @@ struct generator_settings : public conf::configuration {
       {"Price", SearchType_Price},
       {"PriceTransferClasses", SearchType_PriceTransferClasses},
       {"Occupancy", SearchType_Occupancy},
+      {"OccupancyBoth", SearchType_Occupancy},
       {"PriceOccupancy", SearchType_PriceOccupancy}};
 
   SearchType get_search_type() const {

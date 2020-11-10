@@ -161,6 +161,24 @@ using occupancy_label =
                      transfers_result_dominance, occupancy_dominance_max>>;
 
 template <search_dir Dir>
+using occupancy_both_label =
+label<Dir, MAX_TRAVEL_TIME, false, get_travel_time_lb,
+    label_data<travel_time, transfers, occupancy, absurdity>,
+    initializer<travel_time_initializer, transfers_initializer,
+        occupancy_initializer, absurdity_initializer>,
+    updater<travel_time_updater, transfers_updater, occupancy_updater<false>,
+        absurdity_updater>,
+    filter<travel_time_filter, transfers_filter>,
+    dominance<absurdity_tb, travel_time_dominance, transfers_dominance,
+        occupancy_dominance_max, occupancy_dominance>,
+    dominance<absurdity_post_search_tb, travel_time_alpha_dominance,
+        transfers_dominance, occupancy_dominance_max, occupancy_dominance>,
+    comparator<transfers_dominance>,
+    optimality<travel_time_optimality, transfers_optimality>,
+    result_dominance<default_tb, travel_time_result_dominance,
+        transfers_result_dominance, occupancy_dominance_max, occupancy_dominance>>;
+
+template <search_dir Dir>
 using price_occupancy_label = label<
     Dir, MAX_TRAVEL_TIME, false, get_travel_time_lb,
     label_data<travel_time, transfers, price, occupancy, absurdity>,
