@@ -194,6 +194,8 @@ private:
     for (auto it = results_.begin(); it != results_.end();) {
       Label* o = *it;
       if (terminal_label->dominates(*o)) {
+        // don't have to release optimal as optimals can't be dominated.
+        assert(!o->is_on_optimal_journey());
         label_store_.release(o);
         it = results_.erase(it);
       } else if (o->dominates(*terminal_label)) {
@@ -203,6 +205,9 @@ private:
       }
     }
     results_.push_back(terminal_label);
+    if (terminal_label->is_on_optimal_journey()) {
+      optimal_results_.push_back(terminal_label);
+    }
     stats_.labels_popped_after_last_result_ = 0;
     stats_.labels_created_after_last_result_ = 0;
     return true;
@@ -231,7 +236,7 @@ private:
   }
 
   bool feasible_considering_results(Label* label) {
-    return label->may_be_in_result_set(results_);
+    return label->may_be_in_result_set(results_, optimal_results_);
     /**
     for (auto const& result : results_) {
       if (result->dominates(*label)) {
@@ -270,6 +275,9 @@ private:
   std::vector<Label*> optimals_;
 
   mcd::hash_map<node const*, std::vector<edge>> additional_edges_;
+  // vector containing only the result which where found on optimal connections
+  std::vector<Label*> optimal_results_;
+  // vector containinh all results
   std::vector<Label*> results_;
   LowerBounds& lower_bounds_;
   mem_manager& label_store_;
