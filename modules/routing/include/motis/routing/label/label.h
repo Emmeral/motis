@@ -84,7 +84,8 @@ struct label : public Data {  // NOLINT
   /**
    * Returns true if this label has a chance to be in the given result set
    */
-  bool may_be_in_result_set(const std::vector<label*>& result_set) const {
+  bool may_be_in_result_set(const std::vector<label*>& result_set,
+                            const std::vector<label*>& optimal_results) {
 
     // we already know that labels on optimal journeys will be a
     // valid result
@@ -92,13 +93,9 @@ struct label : public Data {  // NOLINT
       return true;
     }
 
-    // the results which are comparable to the given label (considering start
-    // time etc.)
-    std::vector<label*> comparable_results;
-    std::copy_if(result_set.begin(), result_set.end(),
-                 std::back_inserter(comparable_results), [*this](label* r) {
-                   return r->current_begin() == this->current_begin();
-                 });
+    auto comparable = [*this](label const& result) {
+      return this->current_begin() == result.current_begin();
+    };
 
     bool optimals_exist = false;
     constexpr bool result_dominance_exists =
@@ -107,37 +104,43 @@ struct label : public Data {  // NOLINT
     // we can only apply the improved domination if the result dominance
     // template parameter is defined
     if constexpr (result_dominance_exists) {
-      for (label* result : comparable_results) {
-        if (result->is_on_optimal_journey()) {
-          optimals_exist = true;
 
-          bool merged_valid = true;
-          for (label* r : comparable_results) {
-            if (ResultDominance::result_dominates(true, *r, *this, *result)) {
+      for (const label* opt_res : optimal_results) {
+
+        if (!comparable(*opt_res)) {
+          continue;
+        }
+        optimals_exist = true;
+
+        bool merged_valid = true;
+        for (label* r : result_set) {
+          if (comparable(*r)) {
+            if (ResultDominance::result_dominates(true, *r, *this, *opt_res)) {
               merged_valid = false;
               break;
             }
           }
-          // if the merged label was not dominated the original label can be
-          // part of the result set
-          if (merged_valid) {
-            return true;
-          }
+        }
+        // if the merged label was not dominated the original label can be
+        // part of the result set otherwise cache that it will always be
+        // dominated
+        if (merged_valid) {
+          return true;
         }
       }
 
-      // if no merged label was not dominated the original label may never be
-      // part of the result set
       if (optimals_exist) {
         return false;
       }
     }
 
     // if no optimal labels exists perform a default domination check
-    if (!optimals_exist) {
-      for (label* r : comparable_results) {
-        if (Dominance::dominates(false, *r, *this)) {
-          return false;
+    if (!optimals_exist || !result_dominance_exists) {
+      for (label* r : result_set) {
+        if (comparable(*r)) {
+          if (Dominance::dominates(false, *r, *this)) {
+            return false;
+          }
         }
       }
     }
