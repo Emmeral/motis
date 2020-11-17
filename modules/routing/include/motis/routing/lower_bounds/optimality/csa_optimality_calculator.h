@@ -47,6 +47,7 @@ public:
         *sched, *csa_tt, initial_query, SearchType::SearchType_Default,
         csa::implementation_type::CPU_SSE);
 
+    optimal_journey_count_ = response.journeys_.size();
     uint8_t conn_id{0};
     for (auto const& csa_journey : response.journeys_) {
       journey j = csa::csa_to_journey(*sched, csa_journey);
@@ -106,6 +107,11 @@ public:
       }
     }
     return false;
+  }
+
+
+  int get_optimal_journey_count() const{
+    return optimal_journey_count_;
   }
 
 private:
@@ -269,6 +275,7 @@ private:
     }
   }
 
+  int optimal_journey_count_{0};
   const search_dir search_direction_{search_dir::FWD};
   std::map<uint32_t, std::vector<interval>> optimal_map_;
 };

@@ -166,7 +166,9 @@ private:
     // if the optimals are not empty not all optimal results have been found
     // which is a precondition for the feasible_considerung_results method to
     // work
-    if (!optimals_.empty() || feasible_considering_results(new_label)) {
+    bool all_opt_results_found =
+        optimals_.size() == lower_bounds_.get_optimal_journey_count();
+    if (!all_opt_results_found || feasible_considering_results(new_label)) {
       // if the label is not dominated by a former one for the same node...
       //...add it to the queue
       if (add_label_to_node(new_label, edge.get_destination<Dir>())) {

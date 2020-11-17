@@ -53,6 +53,10 @@ public:
     return optimality_delegate_->is_optimal(l);
   }
 
+  int get_optimal_journey_count() const override {
+    return optimality_delegate_->get_optimal_journey_count();
+  }
+
   /**
    * @return true if the calculation was successful and the target could be
    * reached and false if the target is unreachable
@@ -60,8 +64,8 @@ public:
   lower_bounds_result<Label> calculate() override {
 
     MOTIS_START_TIMING(optimality_timing);
-    bool reachable = optimality_delegate_->calculate_optimality(
-        this->routing_query_);
+    bool reachable =
+        optimality_delegate_->calculate_optimality(this->routing_query_);
     MOTIS_STOP_TIMING(optimality_timing);
 
     lower_bounds_result<Label> r;

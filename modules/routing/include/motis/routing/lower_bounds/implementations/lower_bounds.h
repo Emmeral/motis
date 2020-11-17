@@ -47,7 +47,16 @@ public:
    * @param l
    * @return true if on optimal journey regarding transfers
    */
-  virtual bool is_on_optimal_transfers_journey(Label& /*l*/) const { return false; }
+  virtual bool is_on_optimal_transfers_journey(Label& /*l*/) const {
+    return false;
+  }
+
+  /**
+   * Returns the amount of optimal journeys known to exist. Used by pareto
+   * dijkstra to determine whether all optimal connections have been found.
+   * @return
+   */
+  virtual int get_optimal_journey_count() const { return 0; }
 
   lower_bounds_stats get_stats() const {
 
