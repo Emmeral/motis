@@ -10,7 +10,9 @@ namespace motis::routing {
 struct interval {
   time start_{0};
   time end_{std::numeric_limits<time>::max()};
-  bool interchange_{false};
+  bool route_allowed{true};
+  bool station_allowed{false};
+  bool foot_allowed{false};
   uint8_t connection_id_{0};
 
   bool contains(time t) const { return t >= start_ && t <= end_; }
@@ -77,12 +79,19 @@ public:
       return false;
     }
 
-    const bool is_station = node->is_station_node();
     const bool is_route_node = node->is_route_node();
+    const bool is_station_node = node->is_station_node();
+    const bool is_foot_node = node->is_foot_node();
     for (interval const& i : (*iterator).second) {
       // don't make station nodes optimal, if there was no transfer in the
       // interval.
-      if (!i.interchange_ && is_station) {
+      if (is_station_node && !i.station_allowed) {
+        continue;
+      }
+      if (is_foot_node && !i.foot_allowed) {
+        continue;
+      }
+      if (is_route_node && !i.route_allowed) {
         continue;
       }
 
@@ -94,14 +103,14 @@ public:
         // If we are leaving the station we are only optimal if we the
         // destination is on an optimal journey and more importantly on the same
         // optimal journey as we are currently
-        if (i.interchange_ && is_route_node &&
+        if (is_route_node &&
             l.edge_->type() != edge::ROUTE_EDGE) {  // -> on leaving route node
           bool opt_leave =
               check_optimal_station_leave<Label>(l, node, i.connection_id_);
           if (opt_leave) {
             return true;
           }
-        } else { // otherwise just look at the current interval
+        } else {  // otherwise just look at the current interval
           return true;
         }
       }
@@ -195,31 +204,37 @@ private:
     time departure_time;
     time arrival_time;
 
-    bool is_start_or_end{false};
+    bool is_start{false};
+    bool is_end{false};
 
     if (arrival_time_unix == 0) {
       arrival_time = 0;
-      is_start_or_end = true;
+      is_start = true;
     } else {
       arrival_time =
           unix_to_motistime(sched.schedule_begin_, arrival_time_unix);
     }
 
-
     if (departure_time_unix == 0) {
-      is_start_or_end =
-          true;  // if there is no departure it is the last station
+      is_end = true;  // if there is no departure it is the last station
       // TODO: does this work for backwards search?
       departure_time = arrival_time + station->transfer_time_;
     } else {
       departure_time =
           unix_to_motistime(sched.schedule_begin_, departure_time_unix);
     }
-    // we have to specifically set interchange to true in case the last station
-    // is reached by foot or the first is left by foot
-    bool is_interchange = s.exit_ || s.enter_ || is_start_or_end;
-    interval inter = {arrival_time, departure_time, is_interchange,
-                      connection_id};
+    // because you only need to go to the station node if your are done or want
+    // to enter the next train
+    bool station_allowed = (s.enter_) || is_start || is_end;
+    // because you only go to a foot node if you exit a train and don't enter
+    // another at the same station. Except for the target. You won't want to
+    // walk away from here again.
+    bool foot_allowed =
+        (s.exit_ && !s.enter_ && !is_end) || (is_start && !s.enter_);
+    // don't allow route nodes at the start if the journey starts by foot
+    bool route_allowed = !is_start || s.enter_;
+    interval inter = {arrival_time,    departure_time, route_allowed,
+                      station_allowed, foot_allowed,   connection_id};
 
     optimal_map_[id].push_back(inter);
   }
@@ -268,8 +283,9 @@ private:
           continue;  // skip already inserted or loops
         }
         time time_at_new_station = last_inserted_optimum.end_ + fp.duration_;
-        interval new_optimum = {time_at_new_station, time_at_new_station, true,
-                                connection_id};
+        interval new_optimum = {
+            time_at_new_station, time_at_new_station, false, true, true,
+            connection_id};
         optimal_map_[fp.to_station_].push_back(new_optimum);
       }
     }
