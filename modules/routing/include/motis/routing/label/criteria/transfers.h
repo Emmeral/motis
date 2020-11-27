@@ -100,6 +100,13 @@ struct transfers_optimality {
   static bool is_on_optimal_journey(Label const& l) {
     return l.on_optimal_transfers_journey_;
   }
+
+  template <typename Label>
+  static void transfer_optimality(Label& new_l, Label const& old_l) {
+    if (old_l.on_optimal_transfers_journey_) {
+      new_l.on_optimal_transfers_journey_ = true;
+    }
+  }
 };
 
 }  // namespace motis::routing

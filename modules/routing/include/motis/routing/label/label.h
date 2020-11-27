@@ -68,17 +68,18 @@ struct label : public Data {  // NOLINT
 
   inline bool is_filtered() { return Filter::is_filtered(*this); }
 
-  bool dominates(label const& o) const {
+  bool dominates(label const& o) {
     if (incomparable(o)) {
       return false;
     }
-    // a label not on an optimal journey can't dominate an optimal label per
-    // definition
-    if (o.is_on_optimal_journey() && !is_on_optimal_journey()) {
-      return false;
-    }
 
-    return Dominance::dominates(false, *this, o);
+    bool dominates =  Dominance::dominates(false, *this, o);
+    /**
+    if(dominates && o.is_on_optimal_journey()){
+      o.transfer_optimality_to(*this);
+    }
+    **/
+    return dominates;
   }
 
   /**
@@ -122,8 +123,7 @@ struct label : public Data {  // NOLINT
           }
         }
         // if the merged label was not dominated the original label can be
-        // part of the result set otherwise cache that it will always be
-        // dominated
+        // part of the result set
         if (merged_valid) {
           return true;
         }
@@ -150,6 +150,10 @@ struct label : public Data {  // NOLINT
 
   bool is_on_optimal_journey() const {
     return Optimality::is_on_optimal_journey(*this);
+  }
+
+  void transfer_optimality_to(label& new_label) const {
+    Optimality::transfer_optimality(*this, new_label);
   }
 
   bool incomparable(label const& o) const {

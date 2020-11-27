@@ -83,6 +83,11 @@ struct pareto_dijkstra {
         equals_.pop_back();
         stats_.labels_equals_popped_++;
         stats_.labels_popped_after_last_result_++;
+
+        if (label->is_on_optimal_journey()) {
+          continue;
+        }
+
       } else {
         label = queue_.top();
         stats_.priority_queue_max_size_ =
@@ -91,6 +96,11 @@ struct pareto_dijkstra {
         queue_.pop();
         stats_.labels_popped_++;
         stats_.labels_popped_after_last_result_++;
+
+        // prevent labels from being considered twice
+        if (label->is_on_optimal_journey()) {
+          continue;
+        }
       }
 
       // is label already made obsolete
@@ -163,9 +173,9 @@ private:
       return;
     }
 
-    // if the optimals are not empty not all optimal results have been found
-    // which is a precondition for the feasible_considerung_results method to
-    // work
+    // if the optimals don't have the expected size, not all optimal results
+    // have been found which is a precondition for the
+    // feasible_considerung_results method to work
     bool all_opt_results_found =
         optimals_.size() == lower_bounds_.get_optimal_journey_count();
     if (!all_opt_results_found || feasible_considering_results(new_label)) {
@@ -193,11 +203,17 @@ private:
   }
 
   bool add_result(Label* terminal_label) {
+
     for (auto it = results_.begin(); it != results_.end();) {
       Label* o = *it;
       if (terminal_label->dominates(*o)) {
-        // don't have to release optimal as optimals can't be dominated.
-        assert(!o->is_on_optimal_journey());
+
+        if (o->is_on_optimal_journey()) {
+          auto o_it =
+              std::find(optimal_results_.begin(), optimal_results_.end(), o);
+          o->transfer_optimality_to(*terminal_label);
+          optimal_results_.erase(o_it);
+        }
         label_store_.release(o);
         it = results_.erase(it);
       } else if (o->dominates(*terminal_label)) {
@@ -220,12 +236,22 @@ private:
     for (auto it = dest_labels.begin(); it != dest_labels.end();) {
       Label* o = *it;
       if (o->dominates(*new_label)) {
+
+        // this can potentially happen at leaving route nodes
+        if (new_label->is_on_optimal_journey() && !o->is_on_optimal_journey()) {
+          new_label->transfer_optimality_to(*o);
+          optimals_.push_back(o);
+        }
+
         return false;
       }
 
       if (new_label->dominates(*o)) {
         it = dest_labels.erase(it);
         o->dominated_ = true;
+        if(o->is_on_optimal_journey()){
+          o->transfer_optimality_to(*new_label);
+        }
       } else {
         ++it;
       }
