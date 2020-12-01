@@ -12,13 +12,31 @@ enum {
   MOTIS_ICE_PRICE,
   ADDITIONAL_PRICE
 };
-#define MOTIS_MAX_REGIONAL_TRAIN_TICKET_PRICE (4200u)
-#define MINUTELY_WAGE 8
+constexpr uint16_t MOTIS_MAX_REGIONAL_TRAIN_TICKET_PRICE = 4200u;
+constexpr uint16_t MINUTELY_WAGE = 8;
+constexpr uint16_t MAX_PRICE = 14000u;
+constexpr uint16_t MAX_PRICE_BUCKET =
+    (MAX_PRICE >> 3u) + MAX_TRAVEL_TIME_MINUTES;  // divide by 8
 
 struct price {
   uint16_t total_price_;
+  uint16_t raw_price_;
   uint16_t prices_[5];
-  bool ic_, ice_;
+  bool ic_, ice_, max_regio_;
+};
+
+struct get_total_price {
+  template <typename Label>
+  duration operator()(Label const* l) {
+    return l->total_price_;
+  }
+};
+struct get_price_bucket {
+  template <typename Label>
+  uint16_t operator()(Label const* l) {
+    uint16_t p = (l->total_price_ >> 3u) + (l->travel_time_lb_ >> 3u) * 4;
+    return std::min(p, MAX_PRICE_BUCKET);
+  }
 };
 
 struct price_initializer {
@@ -32,6 +50,7 @@ struct price_initializer {
     l.prices_[4] = 0;
     l.ic_ = false;
     l.ice_ = false;
+    l.max_regio_ = false;
   }
 };
 
@@ -74,8 +93,7 @@ struct price_updater {
           l.prices_[MOTIS_REGIONAL_TRAIN_PRICE] += con->price_;
           if (l.prices_[MOTIS_REGIONAL_TRAIN_PRICE] >
               MOTIS_MAX_REGIONAL_TRAIN_TICKET_PRICE) {
-            l.prices_[MOTIS_REGIONAL_TRAIN_PRICE] =
-                MOTIS_MAX_REGIONAL_TRAIN_TICKET_PRICE;
+            l.max_regio_ = true;
           }
 
           break;
@@ -94,23 +112,30 @@ struct price_updater {
       l.prices_[4] += ec.price_;
     }
 
-    unsigned price_sum =
-        l.prices_[0] + l.prices_[1] + l.prices_[2] + l.prices_[3];
-    auto train_price = std::min(price_sum, 14000u);
+    const unsigned regio_price = l.max_regio_
+                                     ? MOTIS_MAX_REGIONAL_TRAIN_TICKET_PRICE
+                                     : l.prices_[MOTIS_REGIONAL_TRAIN_PRICE];
+    const unsigned other_price_sum = l.prices_[MOTIS_LOCAL_TRANSPORT_PRICE] +
+                                     l.prices_[MOTIS_ICE_PRICE] +
+                                     l.prices_[MOTIS_IC_PRICE];
+    const uint16_t train_price = other_price_sum + regio_price;
 
-    l.total_price_ = train_price + l.prices_[4];
-    l.total_price_ = l.total_price_ + l.travel_time_ * MINUTELY_WAGE;
+    l.total_price_ =
+        std::min(train_price, MAX_PRICE) + l.prices_[ADDITIONAL_PRICE];
   }
 };
 
 struct price_dominance {
   template <typename Label>
   struct domination_info {
-    domination_info(Label const& a, Label const& b)
-        : greater_(a.total_price_ + get_additional_price(a, b) >
-                   b.total_price_),
-          smaller_(a.total_price_ + get_additional_price(a, b) <
-                   b.total_price_) {}
+    domination_info(Label const& a, Label const& b){
+
+      auto add_p = get_additional_price(a, b);
+      auto a_price = std::min(a.total_price_ + add_p,
+                              MAX_PRICE + a.prices_[ADDITIONAL_PRICE]);
+      greater_ = a_price > b.total_price_;
+      smaller_ = a_price < b.total_price_;
+    }
     inline bool greater() const { return greater_; }
     inline bool smaller() const { return smaller_; }
     inline uint16_t get_additional_price(Label const& a, Label const& b) {
