@@ -177,7 +177,7 @@ private:
     // have been found which is a precondition for the
     // feasible_considerung_results method to work
     bool all_opt_results_found =
-        optimals_.size() == lower_bounds_.get_optimal_journey_count();
+        optimal_results_.size() >= lower_bounds_.get_optimal_journey_count();
     if (!all_opt_results_found || feasible_considering_results(new_label)) {
       // if the label is not dominated by a former one for the same node...
       //...add it to the queue
@@ -265,14 +265,6 @@ private:
 
   bool feasible_considering_results(Label* label) {
     return label->may_be_in_result_set(results_, optimal_results_);
-    /**
-    for (auto const& result : results_) {
-      if (result->dominates(*label)) {
-        return true;
-      }
-    }
-    return false;
-     */
   }
 
 
