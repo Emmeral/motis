@@ -105,8 +105,7 @@ public:
         // optimal journey as we are currently
         if (is_route_node &&
             l.edge_->type() != edge::ROUTE_EDGE) {  // -> on leaving route node
-          bool opt_leave =
-              check_optimal_station_leave<Label>(l, node, i.connection_id_);
+          bool opt_leave = check_optimal_station_leave<Label>(l, node, i);
           if (opt_leave) {
             return true;
           }
@@ -134,7 +133,10 @@ private:
    */
   template <typename Label>
   bool check_optimal_station_leave(Label const& l, node const* node,
-                                   uint8_t current_con_id) const {
+                                   interval current_interval) const {
+
+    const uint8_t current_con_id = current_interval.connection_id_;
+
     if (search_direction_ == search_dir::FWD) {
       // check for all route edges whether the next connection arrives on the
       // same connection at a valid time
@@ -143,6 +145,11 @@ private:
           light_connection const* conn =
               e.template get_connection<search_dir::FWD>(l.current_end());
           if (conn == nullptr) {
+            continue;
+          }
+
+          // check if departure matches
+          if (conn->d_time_ != current_interval.end_) {
             continue;
           }
 
@@ -168,6 +175,11 @@ private:
           light_connection const* conn =
               e->template get_connection<search_dir::FWD>(l.current_end());
           if (conn == nullptr) {
+            continue;
+          }
+
+          // check if departure matches
+          if (conn->a_time_ != current_interval.start_) {
             continue;
           }
 
@@ -260,28 +272,46 @@ private:
           sched.eva_to_station_.at(j.stops_[t.to_].eva_no_);
       auto const& to_station_id = to_station->index_;
 
-      /** TODO: why does this optimization not work?
-      for (auto const& fp : from_station->outgoing_footpaths_) {
-        if (fp.to_station_ == to_station_id) {
-          return;  // if the station is reached directly the fp was not
-                   // transitive
-        }
-      }
-      **/
-
-      // TODO: there might be edge cases where there are multiple optima
-      // inserted for a single journey
       const interval last_inserted_optimum =
           optimal_map_[from_station_id].back();
-      auto const& csa_from_station = csa_tt.stations_[from_station_id];
 
-      // make all stations in the local footpath cluster optimal
-      for (auto const& fp : csa_from_station.footpaths_) {
+      assert(last_inserted_optimum.foot_allowed);
+
+      auto const& csa_from_station = csa_tt.stations_[from_station_id];
+      auto const& csa_out_fps = csa_from_station.footpaths_;
+
+      auto const& csa_to_station = csa_tt.stations_[to_station_id];
+
+      footpath const& to_stat_fp =
+          *std::find_if(csa_out_fps.begin(), csa_out_fps.end(),
+                        [to_station_id](auto const fp) {
+                          return fp.to_station_ == to_station_id;
+                        });
+
+      // make stations in the local footpath cluster optimal
+      for (footpath const& fp : csa_out_fps) {
 
         if (fp.to_station_ == to_station_id ||
             fp.to_station_ == from_station_id) {
           continue;  // skip already inserted or loops
         }
+
+        // skip if further away than  to_station
+        if (fp.duration_ > to_stat_fp.duration_) {
+          continue;
+        }
+
+        footpath const& out_fp = *std::find_if(
+            csa_to_station.incoming_footpaths_.begin(),
+            csa_to_station.incoming_footpaths_.end(), [fp](auto const out_fp) {
+              return out_fp.from_station_ == fp.to_station_;
+            });
+
+        // skip if footpaths do not sum up to the total trans. fp.
+        if(fp.duration_ + out_fp.duration_ != to_stat_fp.duration_){
+          continue;
+        }
+
         time time_at_new_station = last_inserted_optimum.end_ + fp.duration_;
         interval new_optimum = {
             time_at_new_station, time_at_new_station, false, true, true,
