@@ -261,7 +261,7 @@ private:
 
     for (auto const& t : j.transports_) {
       if (!t.is_walk_) {
-        continue;  // problem does only occur on footpaths
+        continue;  // problem does only occur at footpaths
       }
 
       auto const& from_station =
@@ -272,10 +272,18 @@ private:
           sched.eva_to_station_.at(j.stops_[t.to_].eva_no_);
       auto const& to_station_id = to_station->index_;
 
-      const interval last_inserted_optimum =
-          optimal_map_[from_station_id].back();
+      std::vector<interval> optima_at_station = optimal_map_[from_station_id];
 
-      assert(last_inserted_optimum.foot_allowed);
+      // sometimes the same station is visited twice by the optimal journey but
+      // only once left by foot
+      auto it = std::find_if(
+          optima_at_station.rbegin(), optima_at_station.rend(),
+          [=](interval const& inter) {
+            return inter.foot_allowed && inter.connection_id_ == connection_id;
+          });
+      assert(it != optima_at_station.rend());
+
+      const interval last_inserted_optimum = *it;
 
       auto const& csa_from_station = csa_tt.stations_[from_station_id];
       auto const& csa_out_fps = csa_from_station.footpaths_;

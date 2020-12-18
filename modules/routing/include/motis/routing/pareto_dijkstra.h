@@ -193,6 +193,9 @@ private:
           equals_.push_back(new_label);
         }
       } else {
+        if (new_label->is_on_optimal_journey()) {
+          preserve_optimality(new_label, edge.get_destination<Dir>());
+        }
         label_store_.release(new_label);
         stats_.labels_dominated_by_former_labels_++;
       }
@@ -236,13 +239,6 @@ private:
     for (auto it = dest_labels.begin(); it != dest_labels.end();) {
       Label* o = *it;
       if (o->dominates(*new_label)) {
-
-        // this can potentially happen at leaving route nodes
-        if (new_label->is_on_optimal_journey() && !o->is_on_optimal_journey()) {
-          new_label->transfer_optimality_to(*o);
-          optimals_.push_back(o);
-        }
-
         return false;
       }
 
@@ -263,10 +259,77 @@ private:
     return true;
   }
 
+  void preserve_optimality(const Label* opt_label, node const* dest) {
+    auto& dest_labels = node_labels_[dest->id_];
+
+    for (Label* o : dest_labels) {
+
+      if (o->dominates(*opt_label)) {
+
+        // this can potentially happen at leaving route nodes
+        if (opt_label->is_on_optimal_journey() && !o->is_on_optimal_journey()) {
+          opt_label->transfer_optimality_to(*o);
+          optimals_.push_back(o);
+
+          // If the domination happens at a route node and the route node has a
+          // through edge the other label might not have a connection and can
+          // therefore not use the through edge. If the through edge is used in
+          // the opt. journey then we would lose it. Therefore we also
+          // mark a label at the destination of the through edge as optimal
+          // which has the same predecessor as this one
+          if (dest->is_route_node() && o->connection_ == nullptr &&
+              opt_label->connection_ != nullptr) {
+
+            const edge* through_edge = nullptr;
+            if (Dir == search_dir::FWD) {
+
+              auto it = std::find_if(
+                  dest->edges_.begin(), dest->edges_.end(),
+                  [](edge const& e) { return e.type() == edge::THROUGH_EDGE; });
+              if (it != dest->edges_.end()) {
+                through_edge = it;
+              }
+
+            } else {
+              auto it =
+                  std::find_if(dest->incoming_edges_.begin(),
+                               dest->incoming_edges_.end(), [](edge const* e) {
+                                 return e->type() == edge::THROUGH_EDGE;
+                               });
+              if (it != dest->incoming_edges_.end()) {
+                through_edge = *it;
+              }
+            }
+
+            if (through_edge != nullptr) {
+              // does not work as pred might be already optimal and processed
+              // but route node got not optimal
+
+              node const* t_dest = through_edge->template get_destination();
+              auto& through_labels = node_labels_[t_dest->id_];
+
+              auto t_label_it = std::find_if(
+                  through_labels.begin(), through_labels.end(),
+                  [&o](Label const* l) { return l->pred_ == o->pred_; });
+
+              if (t_label_it == through_labels.end()) {
+                continue;
+              }
+
+              Label* t_label = *t_label_it;
+
+              opt_label->transfer_optimality_to(*t_label);
+              optimals_.push_back(t_label);
+            }
+          }
+        }
+      }
+    }
+  }
+
   bool feasible_considering_results(Label* label) {
     return label->may_be_in_result_set(results_, optimal_results_);
   }
-
 
   void filter_results() {
     if (!Label::is_post_search_dominance_enabled()) {
