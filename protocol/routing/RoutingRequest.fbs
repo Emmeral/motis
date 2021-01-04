@@ -101,6 +101,7 @@ enum SearchType : byte {
   Price,
   PriceTransferClasses,
   Occupancy,
+  OccupancySum,
   OccupancyBoth,
   PriceOccupancy
 }

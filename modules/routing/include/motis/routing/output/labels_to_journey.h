@@ -40,6 +40,11 @@ inline std::vector<unsigned> criteria_data(occupancy_label<Dir> const& l) {
 }
 
 template <search_dir Dir>
+inline std::vector<unsigned> criteria_data(occupancy_sum_label<Dir> const& l) {
+  return {0, 0, 0, l.occ_, l.max_occ_, 0};
+}
+
+template <search_dir Dir>
 inline std::vector<unsigned> criteria_data(occupancy_both_label<Dir> const& l) {
   return {0, 0, 0, l.occ_, l.max_occ_, 0};
 }

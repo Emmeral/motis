@@ -59,6 +59,8 @@ inline search_result search_dispatch(search_query const& q,
       return get_connections<price_transfer_classes_label<Dir>, Gen>(q);
     case SearchType_Occupancy:
       return get_connections<occupancy_label<Dir>, Gen>(q);
+    case SearchType_OccupancySum:
+      return get_connections<occupancy_sum_label<Dir>, Gen>(q);
     case SearchType_OccupancyBoth:
       return get_connections<occupancy_both_label<Dir>, Gen>(q);
     case SearchType_PriceOccupancy:
