@@ -19,22 +19,25 @@ struct edge_cost {
         time_(INVALID_TIME),
         price_(0),
         transfer_(false),
-        accessibility_(0) {}
+        accessibility_(0),
+        waiting_time_(0) {}
 
-  edge_cost(duration time, light_connection const* c)
+  edge_cost(duration time, light_connection const* c, duration waiting_time = 0)
       : connection_(c),
         time_(time),
         price_(0),
         transfer_(false),
-        accessibility_(0) {}
+        accessibility_(0),
+        waiting_time_(waiting_time) {}
 
   explicit edge_cost(duration time, bool transfer = false, uint16_t price = 0,
-                     uint16_t accessibility = 0)
+                     uint16_t accessibility = 0, duration waiting_time = 0)
       : connection_(nullptr),
         time_(time),
         price_(price),
         transfer_(transfer),
-        accessibility_(accessibility) {}
+        accessibility_(accessibility),
+        waiting_time_(waiting_time) {}
 
   bool is_valid() const { return time_ != INVALID_TIME; }
 
@@ -43,6 +46,7 @@ struct edge_cost {
   uint16_t price_;
   bool transfer_;
   uint16_t accessibility_;
+  duration waiting_time_;
 };
 
 const edge_cost NO_EDGE = edge_cost();
@@ -296,11 +300,17 @@ public:
     assert(type() == ROUTE_EDGE);
 
     light_connection const* c = get_connection<Dir>(start_time);
-    return (c == nullptr)
-               ? NO_EDGE
-               : edge_cost((Dir == search_dir::FWD) ? c->a_time_ - start_time
-                                                    : start_time - c->d_time_,
-                           c);
+
+    if (c == nullptr) {
+      return NO_EDGE;
+    }
+    const duration wait_time = (Dir == search_dir::FWD)
+                                   ? c->d_time_ - start_time
+                                   : start_time - c->a_time_;
+    const duration travel_time = (Dir == search_dir::FWD)
+                                     ? c->a_time_ - start_time
+                                     : start_time - c->d_time_;
+    return edge_cost(travel_time, c, wait_time);
   }
 
   template <search_dir Dir = search_dir::FWD>

@@ -93,5 +93,7 @@ table Connection {
   transfer_class_sum:ushort;
   occupancy_max:ushort;
   occupancy:ushort;
+  waiting_time:ushort;
+  adj_waiting_time:ushort;
   status:ConnectionStatus;
 }

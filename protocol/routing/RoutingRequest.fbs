@@ -99,7 +99,7 @@ enum SearchType : byte {
   DefaultPrice,
   DefaultPriceRegional,
   Price,
-  PriceTransferClasses,
+  WaitingTime,
   Occupancy,
   OccupancySum,
   OccupancyBoth,

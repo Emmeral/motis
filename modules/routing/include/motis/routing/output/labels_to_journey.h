@@ -25,33 +25,33 @@ inline std::vector<unsigned> criteria_data(Label const&) {
 }
 
 template <search_dir Dir>
-inline std::vector<unsigned> criteria_data(
-    price_transfer_classes_label<Dir> const& l) {
-  return {l.total_price_, l.tclass_max_, l.tclass_sum_, 0, 0, 0};
-}
-template <search_dir Dir>
 inline std::vector<unsigned> criteria_data(price_label<Dir> const& l) {
-  return {l.total_price_, 0, 0, 0, 0, 0};
+  return {l.total_price_, 0, 0, 0, 0, 0, 0, 0};
 }
 
 template <search_dir Dir>
 inline std::vector<unsigned> criteria_data(occupancy_label<Dir> const& l) {
-  return {0, 0, 0, l.occ_, l.max_occ_, 0};
+  return {0, 0, 0, l.occ_, l.max_occ_, 0, 0, 0};
+}
+
+template <search_dir Dir>
+inline std::vector<unsigned> criteria_data(waiting_time_label<Dir> const& l) {
+  return {0, 0, 0, 0, 0, 0, l.waiting_time_, l.adjusted_waiting_time_};
 }
 
 template <search_dir Dir>
 inline std::vector<unsigned> criteria_data(occupancy_sum_label<Dir> const& l) {
-  return {0, 0, 0, l.occ_, l.max_occ_, 0};
+  return {0, 0, 0, l.occ_, l.max_occ_, 0, 0, 0};
 }
 
 template <search_dir Dir>
 inline std::vector<unsigned> criteria_data(occupancy_both_label<Dir> const& l) {
-  return {0, 0, 0, l.occ_, l.max_occ_, 0};
+  return {0, 0, 0, l.occ_, l.max_occ_, 0, 0, 0};
 }
 template <search_dir Dir>
 inline std::vector<unsigned> criteria_data(
     price_occupancy_label<Dir> const& l) {
-  return {l.total_price_, 0, 0, l.occ_, l.max_occ_, 0};
+  return {l.total_price_, 0, 0, l.occ_, l.max_occ_, 0, 0, 0};
 }
 
 template <typename Label>
@@ -117,6 +117,8 @@ journey labels_to_journey(schedule const& sched, Label* label,
   j.occupancy_ = criteria[3];
   j.occupancy_max_ = criteria[4];
   // j.temp_attr_amd_ = criteria[5];
+  j.waiting_time_ = criteria[6];
+  j.adj_waiting_time_ = criteria[7];
 
   return j;
 }

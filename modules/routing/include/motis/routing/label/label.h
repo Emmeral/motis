@@ -61,25 +61,18 @@ struct label : public Data {  // NOLINT
     l.edge_ = &e;
     l.connection_ = ec.connection_;
     l.now_ += (Dir == search_dir::FWD) ? ec.time_ : -ec.time_;
-
     Updater::update(l, ec, lb);
     return !l.is_filtered();
   }
 
   inline bool is_filtered() { return Filter::is_filtered(*this); }
 
-  bool dominates(label const& o) {
+  bool dominates(label const& o) const {
     if (incomparable(o)) {
       return false;
     }
 
-    bool dominates =  Dominance::dominates(false, *this, o);
-    /**
-    if(dominates && o.is_on_optimal_journey()){
-      o.transfer_optimality_to(*this);
-    }
-    **/
-    return dominates;
+    return Dominance::dominates(false, *this, o);
   }
 
   /**

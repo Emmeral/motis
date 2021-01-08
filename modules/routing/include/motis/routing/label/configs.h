@@ -10,6 +10,7 @@
 #include "motis/routing/label/criteria/transfer_classes.h"
 #include "motis/routing/label/criteria/transfers.h"
 #include "motis/routing/label/criteria/travel_time.h"
+#include "motis/routing/label/criteria/waiting_time.h"
 #include "motis/routing/label/criteria/weighted.h"
 #include "motis/routing/label/dominance.h"
 #include "motis/routing/label/filter.h"
@@ -126,23 +127,6 @@ using price_label =
                            transfers_result_dominance, price_dominance>>;
 
 template <search_dir Dir>
-using price_transfer_classes_label = label<
-    Dir, MAX_TRAVEL_TIME, false, get_travel_time_lb,
-    label_data<travel_time, transfers, price, transfer_classes, absurdity>,
-    initializer<travel_time_initializer, transfers_initializer,
-                price_initializer, transfer_classes_initializer,
-                absurdity_initializer>,
-    updater<travel_time_updater, transfers_updater, price_updater,
-            transfer_classes_updater, absurdity_updater>,
-    filter<travel_time_filter, transfers_filter>,
-    dominance<absurdity_tb, travel_time_dominance, transfers_dominance,
-              price_dominance, transfer_classes_max_dominance>,
-    dominance<absurdity_post_search_tb, travel_time_alpha_dominance,
-              transfers_dominance, price_dominance,
-              transfer_classes_max_dominance>,
-    comparator<transfers_dominance>>;
-
-template <search_dir Dir>
 using occupancy_label = label<
     Dir, MAX_TRAVEL_TIME, false, get_travel_time_lb,
     label_data<travel_time, transfers, occupancy, absurdity>,
@@ -177,6 +161,24 @@ using occupancy_sum_label =
           optimality<travel_time_optimality, transfers_optimality>,
           result_dominance<default_tb, travel_time_result_dominance,
                            transfers_result_dominance, occupancy_dominance>>;
+
+template <search_dir Dir>
+using waiting_time_label = label<
+    Dir, MAX_TRAVEL_TIME, false, get_travel_time_lb,
+    label_data<travel_time, transfers, waiting_time, absurdity>,
+    initializer<travel_time_initializer, transfers_initializer,
+                waiting_time_initializer, absurdity_initializer>,
+    updater<travel_time_updater, transfers_updater, waiting_time_updater,
+            absurdity_updater>,
+    filter<travel_time_filter, transfers_filter>,
+    dominance<absurdity_tb, travel_time_dominance, transfers_dominance,
+              waiting_time_dominance>,
+    dominance<absurdity_post_search_tb, travel_time_alpha_dominance,
+              transfers_dominance, waiting_time_dominance>,
+    comparator<transfers_dominance>,
+    optimality<travel_time_optimality, transfers_optimality>,
+    result_dominance<default_tb, travel_time_result_dominance,
+                     transfers_result_dominance, waiting_time_result_dominance>>;
 
 template <search_dir Dir>
 using occupancy_both_label =

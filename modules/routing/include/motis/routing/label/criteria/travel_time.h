@@ -15,6 +15,13 @@ struct get_travel_time_lb {
     return l->travel_time_lb_;
   }
 };
+struct get_remaining_travel_time {
+  template <typename Label>
+  duration operator()(Label const* l) {
+    return l->travel_time_lb_ - l->travel_time_;
+  }
+};
+
 
 struct travel_time_initializer {
   template <typename Label, typename LowerBounds>

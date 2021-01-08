@@ -64,21 +64,28 @@ void print(journey_meta_data const& con) {
 
   auto const format_occupancy = [](journey_meta_data const& j) {
     std::stringstream ss;
-    ss << "Occ: " <<  j.occupancy_ << "/" << j.occ_max_;
+    ss << "Occ: " << j.occupancy_ << "/" << j.occ_max_;
+    return ss.str();
+  };
+
+  auto const format_waiting_time = [&](journey_meta_data const& j) {
+    std::stringstream ss;
+    ss << "WT: " << format_duration(j.waiting_time_ * 60) << "/"
+       << format_duration(j.adj_waiting_time_ * 60);
     return ss.str();
   };
 
   std::cout << std::right << std::setw(13) << format_duration(con.duration_)  //
             << " [" << format_time(con.get_departure_time()) << " - "
             << format_time(con.get_arrival_time()) << "]\t"
-            << format_price(con.price_) << "\t"//
-            << format_occupancy(con) << "\t"
+            << format_price(con.price_) << " "  //
+            << format_occupancy(con) << " " << format_waiting_time(con) << "\t"
             << std::setw(5) << con.transfers_;
 }
 
 void print_empty() {
   std::cout << std::setw(27) << std::left << "-"
-            << "\t-\t-\t" << std::setw(5) << "-";
+            << "\t-\t-\t-\t-\t" << std::setw(5) << "-";
 }
 
 bool print_differences(response const& r1, response const& r2,

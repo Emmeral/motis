@@ -72,6 +72,14 @@ void print_category(category& cat, uint64_t count, bool compact, int top) {
             << cat.name_ << "\n"
             << std::string(cat.name_.size(), '=') << "\n"
             << std::endl;
+
+  int max_stat_size = 0;
+  for(auto& s : cat.stats_){
+    if(s.second.name_.size() > max_stat_size){
+      max_stat_size = s.second.name_.size();
+    }
+  }
+
   for (auto& s : cat.stats_) {
     auto& stat = s.second;
     if (stat.values_.empty()) {
@@ -80,7 +88,7 @@ void print_category(category& cat, uint64_t count, bool compact, int top) {
     std::sort(begin(stat.values_), end(stat.values_));
     auto const avg = (stat.sum_ / static_cast<double>(count));
     if (compact) {
-      std::cout << std::left << std::setw(30) << stat.name_
+      std::cout << std::left << std::setw(max_stat_size + 5) << stat.name_
                 << " avg: " << std::setw(27) << std::setprecision(4)
                 << std::fixed << avg << " Q(99): " << std::setw(25)
                 << quantile(stat.values_, 0.99).value_

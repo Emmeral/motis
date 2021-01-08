@@ -35,7 +35,9 @@ struct journey_meta_data {
                             1)),
         price_(c->price()),
         occ_max_(c->occupancy_max()),
-        occupancy_(c->occupancy()) {}
+        occupancy_(c->occupancy()),
+        waiting_time_(c->waiting_time()),
+        adj_waiting_time_(c->adj_waiting_time()){}
 
   inline friend bool operator==(journey_meta_data const& a,
                                 journey_meta_data const& b) {
@@ -71,6 +73,8 @@ struct journey_meta_data {
   uint32_t price_;
   uint32_t occ_max_;
   uint32_t occupancy_;
+  uint32_t waiting_time_;
+  uint32_t adj_waiting_time_;
 };
 
 struct response {
