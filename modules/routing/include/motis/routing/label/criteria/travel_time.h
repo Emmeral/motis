@@ -58,19 +58,31 @@ struct travel_time_updater {
 struct travel_time_dominance {
   template <typename Label>
   struct domination_info {
-    domination_info(Label const& a, Label const& b)
-        : greater_(a.travel_time_lb_ > b.travel_time_lb_),
-          smaller_(a.travel_time_lb_ < b.travel_time_lb_) {
-      
+    domination_info(Label const& a, Label const& b, duration merged_lb = 0)
+        : greater_(a.travel_time_lb_ > std::max(b.travel_time_lb_, merged_lb)),
+          smaller_(a.travel_time_lb_ < std::max(b.travel_time_lb_, merged_lb)) {
     }
     inline bool greater() const { return greater_; }
     inline bool smaller() const { return smaller_; }
     bool greater_, smaller_;
   };
+
   template <typename Label>
   static domination_info<Label> dominates(Label const& a, Label const& b) {
     return domination_info<Label>(a, b);
   }
+  template <typename Label>
+  static domination_info<Label> result_dominates(Label const& a,
+                                                 Label const& b) {
+    return domination_info<Label>(a, b);
+  }
+  template <typename Label>
+  static domination_info<Label> result_dominates(
+      Label const& a, Label const& b, Label const& opt_result_to_merge) {
+    return domination_info<Label>(a, b, opt_result_to_merge.travel_time_lb_);
+  }
+
+  typedef bool has_result_dominates;
 };
 
 
@@ -108,32 +120,6 @@ struct travel_time_alpha_dominance {
   }
 };
 
-struct travel_time_result_dominance {
-  template <typename Label>
-  struct domination_info {
-    domination_info(Label const& a, Label const& b,
-                    Label const& optimal_result_to_merge)
-        : greater_(), smaller_() {
-      auto const used_travel_time_lb =
-          std::max(b.travel_time_lb_, optimal_result_to_merge.travel_time_lb_);
-      greater_ = a.travel_time_lb_ > used_travel_time_lb;
-      smaller_ = a.travel_time_lb_ < used_travel_time_lb;
-    }
-    inline bool greater() const { return greater_; }
-    inline bool smaller() const { return smaller_; }
-    bool greater_, smaller_;
-  };
-
-  template <typename Label>
-  static domination_info<Label> result_dominates(
-      Label const& result, Label const& label,
-      Label const& optimal_result_to_merge) {
-    return domination_info<Label>(result, label, optimal_result_to_merge);
-  }
-
-  typedef bool
-      has_result_dominates;  // hack for result dominates auto detection
-};
 
 struct travel_time_filter {
   template <typename Label>

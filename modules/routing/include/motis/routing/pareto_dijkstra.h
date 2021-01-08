@@ -218,7 +218,7 @@ private:
 
     for (auto it = results_.begin(); it != results_.end();) {
       Label* o = *it;
-      if (terminal_label->dominates(*o)) {
+      if (terminal_label->result_dominates(*o)) {
 
         if (o->is_on_optimal_journey()) {
           auto o_it =
@@ -228,7 +228,7 @@ private:
         }
         label_store_.release(o);
         it = results_.erase(it);
-      } else if (o->dominates(*terminal_label)) {
+      } else if (o->result_dominates(*terminal_label)) {
         return false;
       } else {
         ++it;
