@@ -155,6 +155,7 @@ private:
             (Dir == search_dir::BWD && edge.type() == edge::ENTER_EDGE &&
              is_goal_[edge.get_source<Dir>()->get_station()->id_]));
     if (!created) {
+      ++stats_.labels_filtered_;
       return;
     }
 
@@ -168,7 +169,15 @@ private:
       if (stats_.labels_popped_until_first_result_ == 0) {
         stats_.labels_popped_until_first_result_ =
             stats_.labels_popped_ + stats_.labels_optimals_popped_ +
-            stats_.labels_optimals_popped_;
+            stats_.labels_equals_popped_;
+      }
+      if (stats_.labels_popped_until_first_non_opt_result_ == 0 &&
+          !new_label->is_on_optimal_journey()) {
+        stats_.labels_popped_until_first_non_opt_result_ =
+            stats_.labels_popped_ + stats_.labels_optimals_popped_ +
+            stats_.labels_equals_popped_;
+        stats_.labels_created_until_first_non_opt_result_ =
+            stats_.labels_created_;
       }
       return;
     }
@@ -360,7 +369,7 @@ private:
   mcd::hash_map<node const*, std::vector<edge>> additional_edges_;
   // vector containing only the result which where found on optimal connections
   std::vector<Label*> optimal_results_;
-  // vector containinh all results
+  // vector containing all results
   std::vector<Label*> results_;
   LowerBounds& lower_bounds_;
   mem_manager& label_store_;

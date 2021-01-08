@@ -22,6 +22,8 @@ struct statistics {
   uint64_t labels_dominated_by_former_labels_{};
   uint64_t labels_dominated_by_later_labels_{};
   uint64_t labels_popped_until_first_result_{};
+  uint64_t labels_popped_until_first_non_opt_result_{};
+  uint64_t labels_created_until_first_non_opt_result_{};
   uint64_t labels_popped_after_last_result_{};
   uint64_t labels_created_after_last_result_{};
   uint64_t priority_queue_max_size_{};
@@ -77,6 +79,10 @@ struct statistics {
     add_entry("labels_popped", s.labels_popped_);
     add_entry("labels_popped_until_first_result",
               s.labels_popped_until_first_result_);
+    add_entry("labels_popped_until_first_non_opt_result",
+              s.labels_popped_until_first_non_opt_result_);
+    add_entry("labels_created_until_first_non_opt_result",
+              s.labels_created_until_first_non_opt_result_);
     add_entry("labels_created_after_last_result",
               s.labels_created_after_last_result_);
     add_entry("labels_to_journey", s.labels_to_journey_);
@@ -120,6 +126,10 @@ struct statistics {
          {"labels_popped", s.labels_popped_},
          {"labels_popped_until_first_result",
           s.labels_popped_until_first_result_},
+         {"labels_popped_until_first_non_opt_result",
+          s.labels_popped_until_first_non_opt_result_},
+         {"labels_created_until_first_non_opt_result",
+          s.labels_created_until_first_non_opt_result_},
          {"labels_created_after_last_result",
           s.labels_created_after_last_result_},
          {"labels_to_journey", s.labels_to_journey_},

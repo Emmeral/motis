@@ -93,7 +93,8 @@ struct price_updater {
           l.prices_[MOTIS_REGIONAL_TRAIN_PRICE] += con->price_;
           if (l.prices_[MOTIS_REGIONAL_TRAIN_PRICE] >
               MOTIS_MAX_REGIONAL_TRAIN_TICKET_PRICE) {
-            l.max_regio_ = true;
+            l.prices_[MOTIS_REGIONAL_TRAIN_PRICE] =
+                MOTIS_MAX_REGIONAL_TRAIN_TICKET_PRICE;
           }
 
           break;
@@ -112,25 +113,35 @@ struct price_updater {
       l.prices_[4] += ec.price_;
     }
 
-    const unsigned regio_price = l.max_regio_
-                                     ? MOTIS_MAX_REGIONAL_TRAIN_TICKET_PRICE
-                                     : l.prices_[MOTIS_REGIONAL_TRAIN_PRICE];
-    const unsigned other_price_sum = l.prices_[MOTIS_LOCAL_TRANSPORT_PRICE] +
-                                     l.prices_[MOTIS_ICE_PRICE] +
-                                     l.prices_[MOTIS_IC_PRICE];
-    const uint16_t train_price = other_price_sum + regio_price;
-
+    const uint16_t price_sum = l.prices_[MOTIS_LOCAL_TRANSPORT_PRICE] +
+                               l.prices_[MOTIS_REGIONAL_TRAIN_PRICE] +
+                               l.prices_[MOTIS_ICE_PRICE] +
+                               l.prices_[MOTIS_IC_PRICE];
     l.total_price_ =
-        std::min(train_price, MAX_PRICE) + l.prices_[ADDITIONAL_PRICE];
+        std::min(price_sum, MAX_PRICE) + l.prices_[ADDITIONAL_PRICE];
   }
 };
 
 struct price_dominance {
   template <typename Label>
   struct domination_info {
-    domination_info(Label const& a, Label const& b){
+    domination_info(Label const& a, Label const& b) {
+
 
       auto add_p = get_additional_price(a, b);
+
+      // if the max regio price is used then the other label might have an
+      // advantage if it is already at a higher price
+      if (b.prices_[MOTIS_REGIONAL_TRAIN_PRICE] >
+          a.prices_[MOTIS_REGIONAL_TRAIN_PRICE]) {
+        add_p += (b.prices_[MOTIS_REGIONAL_TRAIN_PRICE] -
+                  a.prices_[MOTIS_REGIONAL_TRAIN_PRICE]);
+      }
+      // result domination TODO: find better way
+      if(a.edge_->to_->id_ != b.edge_->to_->id_){
+        add_p == 0;
+      }
+
       auto a_price = std::min(a.total_price_ + add_p,
                               MAX_PRICE + a.prices_[ADDITIONAL_PRICE]);
       greater_ = a_price > b.total_price_;
