@@ -20,9 +20,8 @@ constexpr uint16_t MAX_PRICE_BUCKET =
 
 struct price {
   uint16_t total_price_;
-  uint16_t raw_price_;
   uint16_t prices_[5];
-  bool ic_, ice_, max_regio_;
+  bool ic_, ice_;
 };
 
 struct get_total_price {
@@ -50,7 +49,6 @@ struct price_initializer {
     l.prices_[4] = 0;
     l.ic_ = false;
     l.ice_ = false;
-    l.max_regio_ = false;
   }
 };
 
@@ -125,21 +123,13 @@ struct price_updater {
 struct price_dominance {
   template <typename Label>
   struct domination_info {
-    domination_info(Label const& a, Label const& b) {
+    domination_info(Label const& a, Label const& b, bool add_price = true) {
 
+      auto add_p = 0;
 
-      auto add_p = get_additional_price(a, b);
-
-      // if the max regio price is used then the other label might have an
-      // advantage if it is already at a higher price
-      if (b.prices_[MOTIS_REGIONAL_TRAIN_PRICE] >
-          a.prices_[MOTIS_REGIONAL_TRAIN_PRICE]) {
-        add_p += (b.prices_[MOTIS_REGIONAL_TRAIN_PRICE] -
-                  a.prices_[MOTIS_REGIONAL_TRAIN_PRICE]);
-      }
-      // result domination TODO: find better way
-      if(a.edge_->to_->id_ != b.edge_->to_->id_){
-        add_p == 0;
+      if (add_price) {
+        add_p += get_additional_ice_price(a, b);
+        add_p += get_additional_regio_price(a, b);
       }
 
       auto a_price = std::min(a.total_price_ + add_p,
@@ -149,22 +139,32 @@ struct price_dominance {
     }
     inline bool greater() const { return greater_; }
     inline bool smaller() const { return smaller_; }
-    inline uint16_t get_additional_price(Label const& a, Label const& b) {
+    inline uint16_t get_additional_ice_price(Label const& a, Label const& b) {
 
-      if(a.ice_){
+      if (a.ice_) {
         return 0;
       }
-      if(b.ice_){
-        if(a.ic_){
+      if (b.ice_) {
+        if (a.ic_) {
           return 100;
-        }else{
+        } else {
           return 700;
         }
       }
-      if(b.ic_ && !a.ic_){
+      if (b.ic_ && !a.ic_) {
         return 600;
       }
 
+      return 0;
+    }
+    inline uint16_t get_additional_regio_price(Label const& a, Label const& b) {
+      // if the max regio price is used then the other label might have an
+      // advantage if it is already at a higher price
+      if (b.prices_[MOTIS_REGIONAL_TRAIN_PRICE] >
+          a.prices_[MOTIS_REGIONAL_TRAIN_PRICE]) {
+        return (b.prices_[MOTIS_REGIONAL_TRAIN_PRICE] -
+                a.prices_[MOTIS_REGIONAL_TRAIN_PRICE]);
+      }
       return 0;
     }
     bool greater_, smaller_;
@@ -174,6 +174,17 @@ struct price_dominance {
   static domination_info<Label> dominates(Label const& a, Label const& b) {
     auto dom_info = domination_info<Label>(a, b);
     return dom_info;
+  }
+  template <typename Label>
+  static domination_info<Label> result_dominates(Label const& a,
+                                                 Label const& b) {
+    auto dom_info = domination_info<Label>(a, b, false);
+    return dom_info;
+  }
+  template <typename Label>
+  static domination_info<Label> result_dominates(
+      Label const& a, Label const& b, Label const& /* opt_result_to_merge */) {
+    return result_dominates(a, b);
   }
 };
 

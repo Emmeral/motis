@@ -39,11 +39,11 @@ struct waiting_time_updater {
 struct waiting_time_dominance {
   template <typename Label>
   struct domination_info {
-    domination_info(Label const& a, Label const& b)
+    domination_info(Label const& a, Label const& b, bool result_domination = false)
         : greater_(a.waiting_time_ > b.waiting_time_),
           smaller_(a.waiting_time_ < b.waiting_time_) {
 
-      if(a.edge_->to_->id_ != b.edge_->to_->id_){
+      if(result_domination){
         return;
       }
 
@@ -68,25 +68,22 @@ struct waiting_time_dominance {
     inline bool smaller() const { return smaller_; }
     bool greater_, smaller_;
   };
-  template <typename Label>
-  static domination_info<Label> dominates(Label const& a, Label const& b) {
-    return domination_info<Label>(a, b);
-  }
-};
 
-struct waiting_time_result_dominance {
-  template <typename Label>
-  struct domination_info {
-    domination_info(Label const& a, Label const& b)
-        : greater_(a.waiting_time_ > b.waiting_time_),
-          smaller_(a.waiting_time_ < b.waiting_time_) {}
-    inline bool greater() const { return greater_; }
-    inline bool smaller() const { return smaller_; }
-    bool greater_, smaller_;
-  };
   template <typename Label>
   static domination_info<Label> dominates(Label const& a, Label const& b) {
-    return domination_info<Label>(a, b);
+    auto dom_info = domination_info<Label>(a, b);
+    return dom_info;
+  }
+  template <typename Label>
+  static domination_info<Label> result_dominates(Label const& a,
+                                                 Label const& b) {
+    auto dom_info = domination_info<Label>(a, b, true);
+    return dom_info;
+  }
+  template <typename Label>
+  static domination_info<Label> result_dominates(
+      Label const& a, Label const& b, Label const& /* opt_result_to_merge */) {
+    return result_dominates(a, b);
   }
 };
 

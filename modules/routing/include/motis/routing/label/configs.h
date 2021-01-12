@@ -16,7 +16,6 @@
 #include "motis/routing/label/filter.h"
 #include "motis/routing/label/initializer.h"
 #include "motis/routing/label/label.h"
-#include "motis/routing/label/result_dominance.h"
 #include "motis/routing/label/tie_breakers.h"
 #include "motis/routing/label/updater.h"
 
@@ -34,9 +33,7 @@ using default_label =
           dominance<absurdity_post_search_tb, travel_time_alpha_dominance,
                     transfers_dominance>,
           comparator<transfers_dominance>,
-          optimality<travel_time_optimality, transfers_optimality>,
-          result_dominance<default_tb, travel_time_result_dominance,
-                           transfers_result_dominance>>;
+          optimality<travel_time_optimality, transfers_optimality>>;
 
 template <search_dir Dir>
 using default_simple_label = label<
@@ -122,9 +119,7 @@ using price_label =
           dominance<absurdity_post_search_tb, travel_time_alpha_dominance,
                     transfers_dominance, price_dominance>,
           comparator<transfers_dominance>,
-          optimality<travel_time_optimality, transfers_optimality>,
-          result_dominance<default_tb, travel_time_result_dominance,
-                           transfers_result_dominance, price_dominance>>;
+          optimality<travel_time_optimality, transfers_optimality>>;
 
 template <search_dir Dir>
 using occupancy_label = label<
@@ -140,9 +135,7 @@ using occupancy_label = label<
     dominance<absurdity_post_search_tb, travel_time_alpha_dominance,
               transfers_dominance, occupancy_dominance_max>,
     comparator<transfers_dominance>,
-    optimality<travel_time_optimality, transfers_optimality>,
-    result_dominance<default_tb, travel_time_result_dominance,
-                     transfers_result_dominance, occupancy_dominance_max>>;
+    optimality<travel_time_optimality, transfers_optimality>>;
 
 template <search_dir Dir>
 using occupancy_sum_label =
@@ -158,9 +151,7 @@ using occupancy_sum_label =
           dominance<absurdity_post_search_tb, travel_time_alpha_dominance,
                     transfers_dominance, occupancy_dominance>,
           comparator<transfers_dominance>,
-          optimality<travel_time_optimality, transfers_optimality>,
-          result_dominance<default_tb, travel_time_result_dominance,
-                           transfers_result_dominance, occupancy_dominance>>;
+          optimality<travel_time_optimality, transfers_optimality>>;
 
 template <search_dir Dir>
 using waiting_time_label = label<
@@ -176,9 +167,7 @@ using waiting_time_label = label<
     dominance<absurdity_post_search_tb, travel_time_alpha_dominance,
               transfers_dominance, waiting_time_dominance>,
     comparator<transfers_dominance>,
-    optimality<travel_time_optimality, transfers_optimality>,
-    result_dominance<default_tb, travel_time_result_dominance,
-                     transfers_result_dominance, waiting_time_result_dominance>>;
+    optimality<travel_time_optimality, transfers_optimality>>;
 
 template <search_dir Dir>
 using occupancy_both_label =
@@ -195,10 +184,7 @@ using occupancy_both_label =
                     transfers_dominance, occupancy_dominance_max,
                     occupancy_dominance>,
           comparator<transfers_dominance>,
-          optimality<travel_time_optimality, transfers_optimality>,
-          result_dominance<default_tb, travel_time_result_dominance,
-                           transfers_result_dominance, occupancy_dominance_max,
-                           occupancy_dominance>>;
+          optimality<travel_time_optimality, transfers_optimality>>;
 
 template <search_dir Dir>
 using price_occupancy_label = label<
@@ -215,8 +201,5 @@ using price_occupancy_label = label<
     dominance<absurdity_post_search_tb, travel_time_alpha_dominance,
               transfers_dominance, price_dominance, occupancy_dominance_max>,
     comparator<transfers_dominance>,
-    optimality<travel_time_optimality, transfers_optimality>,
-    result_dominance<default_tb, travel_time_result_dominance,
-                     transfers_result_dominance, price_dominance,
-                     occupancy_dominance_max>>;
+    optimality<travel_time_optimality, transfers_optimality>>;
 }  // namespace motis::routing
