@@ -85,6 +85,8 @@ struct waiting_time_dominance {
       Label const& a, Label const& b, Label const& /* opt_result_to_merge */) {
     return result_dominates(a, b);
   }
+
+  typedef bool has_result_dominates;
 };
 
 struct waiting_time_filter {
