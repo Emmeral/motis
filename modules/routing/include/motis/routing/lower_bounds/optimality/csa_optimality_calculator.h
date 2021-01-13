@@ -45,9 +45,15 @@ public:
                                  search_direction_);
 
     const csa::csa_timetable* csa_tt = routing_query.csa_timetable;
+
+    csa::implementation_type impl_type = csa::implementation_type::CPU_SSE;
+#ifdef MOTIS_CUDA
+    impl_type = csa::implementation_type::GPU;
+#endif
+
     csa::response const response = motis::csa::run_csa_search(
         *sched, *csa_tt, initial_query, SearchType::SearchType_Default,
-        csa::implementation_type::CPU_SSE);
+        impl_type);
 
     optimal_journey_count_ = response.journeys_.size();
     uint8_t conn_id{0};
