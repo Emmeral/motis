@@ -66,7 +66,7 @@ void routing::init(motis::module::registry& reg) {
     LOG(logging::info) << "Building CSA timetable for routing";
     auto const& sched = get_sched();
     csa_timetable_ =
-        motis::csa::build_csa_timetable(sched, false, false, false);
+        motis::csa::build_csa_timetable(sched, true, true, false);
    }
 }
 
