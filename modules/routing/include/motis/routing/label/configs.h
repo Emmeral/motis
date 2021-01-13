@@ -115,7 +115,7 @@ using price_label =
                   absurdity_updater>,
           filter<travel_time_filter, transfers_filter>,
           dominance<absurdity_tb, travel_time_dominance, transfers_dominance,
-                    price_dominance>,
+                    price_wage_dominance>,
           dominance<absurdity_post_search_tb, travel_time_alpha_dominance,
                     transfers_dominance, price_dominance>,
           comparator<transfers_dominance>,

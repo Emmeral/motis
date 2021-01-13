@@ -15,10 +15,11 @@ enum {
 constexpr uint16_t MOTIS_MAX_REGIONAL_TRAIN_TICKET_PRICE = 4200u;
 constexpr uint16_t MINUTELY_WAGE = 8;
 constexpr uint16_t MAX_PRICE = 14000u;
-constexpr uint16_t MAX_PRICE_BUCKET =
-    (MAX_PRICE >> 3u) + MAX_TRAVEL_TIME_MINUTES;  // divide by 8
+constexpr uint16_t MAX_PRICE_BUCKET = (MAX_PRICE) + 1000u;
 
 struct price {
+  uint16_t time_included_price_;
+  uint16_t time_included_price_lb_;
   uint16_t total_price_;
   uint16_t prices_[5];
   bool ic_, ice_;
@@ -33,17 +34,17 @@ struct get_total_price {
 struct get_price_bucket {
   template <typename Label>
   uint16_t operator()(Label const* l) {
-    uint16_t p = (l->total_price_ >> 3u) + (l->travel_time_lb_ >> 3u) * 4;
+    uint16_t p = (l->total_price_);
     return std::min(p, MAX_PRICE_BUCKET);
   }
 };
 
 struct price_initializer {
   template <typename Label, typename LowerBounds>
-  static void init(Label& l, LowerBounds&) {
+  static void init(Label& l, LowerBounds& lb) {
     l.total_price_ = 0;
-    l.time_included_price_ = l.travel_time_ * MINUTELY_WAGE;
-    l.time_included_price_lb_ = l.travel_time_lb_ * MINUTELY_WAGE;
+    l.time_included_price_ = 0;
+    l.time_included_price_lb_ = lb.time_from_label(l) * MINUTELY_WAGE;
     l.prices_[0] = 0;
     l.prices_[1] = 0;
     l.prices_[2] = 0;
@@ -56,7 +57,7 @@ struct price_initializer {
 
 struct price_updater {
   template <typename Label, typename LowerBounds>
-  static void update(Label& l, edge_cost const& ec, LowerBounds&) {
+  static void update(Label& l, edge_cost const& ec, LowerBounds& lb) {
     if (ec.connection_ != nullptr) {
       connection const* con = ec.connection_->full_con_;
       switch (con->clasz_) {
@@ -121,7 +122,7 @@ struct price_updater {
         std::min(price_sum, MAX_PRICE) + l.prices_[ADDITIONAL_PRICE];
     l.time_included_price_ = l.total_price_ + l.travel_time_ * MINUTELY_WAGE;
     l.time_included_price_lb_ =
-        l.total_price_ + l.travel_time_lb_ * MINUTELY_WAGE;
+        l.total_price_ + lb.time_from_label(l) * MINUTELY_WAGE;
   }
 };
 
