@@ -42,6 +42,8 @@ struct price_initializer {
   template <typename Label, typename LowerBounds>
   static void init(Label& l, LowerBounds&) {
     l.total_price_ = 0;
+    l.time_included_price_ = l.travel_time_ * MINUTELY_WAGE;
+    l.time_included_price_lb_ = l.travel_time_lb_ * MINUTELY_WAGE;
     l.prices_[0] = 0;
     l.prices_[1] = 0;
     l.prices_[2] = 0;
@@ -117,6 +119,9 @@ struct price_updater {
                                l.prices_[MOTIS_IC_PRICE];
     l.total_price_ =
         std::min(price_sum, MAX_PRICE) + l.prices_[ADDITIONAL_PRICE];
+    l.time_included_price_ = l.total_price_ + l.travel_time_ * MINUTELY_WAGE;
+    l.time_included_price_lb_ =
+        l.total_price_ + l.travel_time_lb_ * MINUTELY_WAGE;
   }
 };
 
@@ -186,7 +191,90 @@ struct price_dominance {
       Label const& a, Label const& b, Label const& /* opt_result_to_merge */) {
     return result_dominates(a, b);
   }
+
+  typedef bool has_result_dominates;
 };
+
+struct price_wage_dominance {
+  template <typename Label>
+  struct domination_info {
+    domination_info(Label const& a, Label const& b, bool add_price = true) {
+
+      auto add_p = 0;
+
+      if (add_price) {
+        add_p += get_additional_ice_price(a, b);
+        add_p += get_additional_regio_price(a, b);
+      }
+
+      add_p = std::min(MAX_PRICE - a.total_price_, add_p);
+      auto a_price = a.time_included_price_lb_ + add_p;
+
+      if(add_price){
+        if (b.now_ > a.now_) {
+          a_price += (b.now_ - a.now_) * MINUTELY_WAGE;
+        }
+      }
+
+      greater_ = a_price > b.time_included_price_lb_;
+      smaller_ = a_price < b.time_included_price_lb_;
+    }
+    inline bool greater() const { return greater_; }
+    inline bool smaller() const { return smaller_; }
+    inline uint16_t get_additional_ice_price(Label const& a, Label const& b) {
+
+      if (a.ice_) {
+        return 0;
+      }
+      if (b.ice_) {
+        if (a.ic_) {
+          return 100;
+        } else {
+          return 700;
+        }
+      }
+      if (b.ic_ && !a.ic_) {
+        return 600;
+      }
+
+      return 0;
+    }
+    inline uint16_t get_additional_regio_price(Label const& a, Label const& b) {
+      // if the max regio price is used then the other label might have an
+      // advantage if it is already at a higher price
+      if (b.prices_[MOTIS_REGIONAL_TRAIN_PRICE] >
+          a.prices_[MOTIS_REGIONAL_TRAIN_PRICE]) {
+        return (b.prices_[MOTIS_REGIONAL_TRAIN_PRICE] -
+                a.prices_[MOTIS_REGIONAL_TRAIN_PRICE]);
+      }
+      return 0;
+    }
+    bool greater_, smaller_;
+  };
+
+  template <typename Label>
+  static domination_info<Label> dominates(Label const& a, Label const& b) {
+    auto dom_info = domination_info<Label>(a, b);
+    return dom_info;
+  }
+  template <typename Label>
+  static domination_info<Label> result_dominates(Label const& a,
+                                                 Label const& b) {
+    auto dom_info = domination_info<Label>(a, b, false);
+    return dom_info;
+  }
+  template <typename Label>
+  static domination_info<Label> result_dominates(
+      Label const& a, Label const& b, Label const& /* opt_result_to_merge */) {
+    return result_dominates(a, b);
+  }
+
+  typedef bool has_result_dominates;
+};
+
+
+
+
 
 }  // namespace routing
 }  // namespace motis

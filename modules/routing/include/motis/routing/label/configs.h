@@ -161,7 +161,7 @@ using waiting_time_label = label<
                 waiting_time_initializer, absurdity_initializer>,
     updater<travel_time_updater, transfers_updater, waiting_time_updater,
             absurdity_updater>,
-    filter<travel_time_filter, transfers_filter>,
+    filter<travel_time_filter, transfers_filter, waiting_time_filter>,
     dominance<absurdity_tb, travel_time_dominance, transfers_dominance,
               waiting_time_dominance>,
     dominance<absurdity_post_search_tb, travel_time_alpha_dominance,
