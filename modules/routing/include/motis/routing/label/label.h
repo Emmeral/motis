@@ -80,6 +80,8 @@ struct label : public Data {  // NOLINT
     return Dominance::result_dominates(false, *this, o);
   }
 
+  static constexpr bool ADV_RESULT_DOMINATION = false;
+
   /**
    * Returns true if this label has a chance to be in the given result set
    */
@@ -98,29 +100,32 @@ struct label : public Data {  // NOLINT
 
     bool optimals_exist = false;
 
+    if constexpr (ADV_RESULT_DOMINATION){
 
-    for (const label* opt_res : optimal_results) {
+      for (const label* opt_res : optimal_results) {
 
-      if (!comparable(*opt_res)) {
-        continue;
-      }
-      optimals_exist = true;
+        if (!comparable(*opt_res)) {
+          continue;
+        }
+        optimals_exist = true;
 
-      bool merged_valid = true;
-      for (label* r : result_set) {
-        if (comparable(*r)) {
-          if (Dominance::template result_dominates<label, true>(true, *r, *this, opt_res)) {
-            merged_valid = false;
-            break;
+        bool merged_valid = true;
+        for (label* r : result_set) {
+          if (comparable(*r)) {
+            if (Dominance::template result_dominates<label, true>(true, *r, *this, opt_res)) {
+              merged_valid = false;
+              break;
+            }
           }
         }
-      }
-      // if the merged label was not dominated the original label can be
-      // part of the result set
-      if (merged_valid) {
-        return true;
+        // if the merged label was not dominated the original label can be
+        // part of the result set
+        if (merged_valid) {
+          return true;
+        }
       }
     }
+
 
     if (optimals_exist) {
       return false;
