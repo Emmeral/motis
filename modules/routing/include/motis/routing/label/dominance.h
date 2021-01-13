@@ -28,6 +28,9 @@ struct dominance<TieBreaker, FirstDominator, RestDominators...> {
                                could_dominate || d.smaller(), a, b);
   }
 
+  /**
+   * @tparam MERGE true if optimal_result_to_merge != nullptr
+   */
   template <typename Label, bool MERGE = false>
   static bool result_dominates(bool could_dominate, Label const& result,
                                Label const& label,
