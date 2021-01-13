@@ -69,24 +69,67 @@ struct journey_meta_data {
 
 struct response {
   response(std::vector<Connection const*> const& c,
-           routing::RoutingResponse const* r)
+           routing::RoutingResponse const* r,
+           routing::RoutingRequest const* req)
       : connections_{utl::to_set(
             c, [](auto&& con) { return journey_meta_data(con); })},
-        r_{r} {}
+        r_{r},
+        is_ontrip_(req->start_type() == routing::Start_OntripStationStart),
+        is_fwd_(req->search_dir() == routing::SearchDir_Forward) {}
 
-  explicit response(routing::RoutingResponse const* r)
+  response(routing::RoutingResponse const* r,
+           routing::RoutingRequest const* req)
       : connections_{utl::to_set(
             *r->connections(),
             [](Connection const* c) { return journey_meta_data(c); })},
-        r_{r} {}
+        r_{r},
+        is_ontrip_(req->start_type() == routing::Start_OntripStationStart),
+        is_fwd_(req->search_dir() == routing::SearchDir_Forward) {}
 
   bool valid() const {
     return std::all_of(begin(connections_), end(connections_),
                        [](journey_meta_data const& c) { return c.valid(); });
   }
 
+  bool has_equal_connections(response const& other) const {
+
+    if ((is_ontrip_ && !other.is_ontrip_) || (is_fwd_ && !other.is_fwd_)) {
+      throw std::logic_error(
+          "Queries have to be the same to compare responses");
+    }
+
+    if (!is_ontrip_) {
+      return connections_ == other.connections_;
+    }
+
+    auto less_ontrip = [*this](journey_meta_data j1, journey_meta_data j2) {
+      if (is_fwd_) {
+        // fwd ontrip station queries are compared by their arrival time
+        return std::make_tuple(j1.arrival_time_, j1.transfers_) <
+               std::make_tuple(j2.arrival_time_, j2.transfers_);
+      } else {
+        // bwd queries are compared by their departure time (later is better)
+        return std::make_tuple(-j1.departure_time_, j1.transfers_) <
+               std::make_tuple(-j2.departure_time_, j2.transfers_);
+      }
+    };
+
+    std::set<journey_meta_data, decltype(less_ontrip)> my_cons(
+        connections_.begin(), connections_.end(), less_ontrip);
+    std::set<journey_meta_data, decltype(less_ontrip)> other_cons(
+        other.connections_.begin(), other.connections_.end(), less_ontrip);
+
+    return std::equal(
+        my_cons.begin(), my_cons.end(), other_cons.begin(), other_cons.end(),
+        [&less_ontrip](journey_meta_data j1, journey_meta_data j2) {
+          return !less_ontrip(j1, j2) && !less_ontrip(j2, j1);
+        });
+  }
+
   std::set<journey_meta_data> connections_;
   routing::RoutingResponse const* r_;
+  const bool is_ontrip_{};
+  const bool is_fwd_{};
 };
 
 }  // namespace motis::eval::comparator

@@ -97,11 +97,15 @@ enum SearchType : byte {
   LateConnectionsTest,
   Accessibility,
   DefaultPrice,
-  DefaultPriceRegional
+  DefaultPriceRegional,
+  Price,
+  PriceTransferClasses,
+  Occupancy,
+  PriceOccupancy
 }
 
 // ----------------------------------------------------------------------------
-// Search Type
+// Search Direction
 // ----------------------------------------------------------------------------
 enum SearchDir : byte {
   Forward,  // given time = departure time
@@ -117,7 +121,7 @@ table RoutingRequest {
   search_dir:SearchDir;
   via:[Via];
   additional_edges:[AdditionalEdgeWrapper];
-  use_start_metas: bool = true;
-  use_dest_metas: bool = true;
+  use_start_metas: bool = false;
+  use_dest_metas: bool = false; //TODO: set back to true later
   use_start_footpaths: bool = true;
 }

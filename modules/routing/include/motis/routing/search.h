@@ -1,33 +1,23 @@
 #pragma once
 
+#include "motis/csa/build_csa_timetable.h"
+#include "motis/routing/lower_bounds/lower_bounds_const_graph.h"
+#include "motis/routing/lower_bounds/lower_bounds_csa.h"
+#include "motis/routing/lower_bounds/lower_bounds_none.h"
+#include "motis/routing/search_query.h"
 #include "utl/to_vec.h"
 
 #include "motis/hash_map.h"
 
 #include "motis/core/common/timing.h"
 #include "motis/core/schedule/schedule.h"
-#include "motis/routing/lower_bounds.h"
+#include "motis/routing/lower_bounds/lower_bounds.h"
 #include "motis/routing/output/labels_to_journey.h"
 #include "motis/routing/pareto_dijkstra.h"
 
 namespace motis::routing {
 
-struct search_query {
-  schedule const* sched_{nullptr};
-  mem_manager* mem_{nullptr};
-  node const* from_{nullptr};
-  station_node const* to_{nullptr};
-  time interval_begin_{0};
-  time interval_end_{0};
-  bool extend_interval_earlier_{false};
-  bool extend_interval_later_{false};
-  std::vector<edge> query_edges_;
-  unsigned min_journey_count_{0};
-  bool use_start_metas_{false};
-  bool use_dest_metas_{false};
-  bool use_start_footpaths_{false};
-  light_connection const* lcon_{nullptr};
-};
+
 
 struct search_result {
   search_result() = default;
@@ -38,6 +28,12 @@ struct search_result {
         interval_begin_(interval_begin),
         interval_end_(interval_end) {}
   explicit search_result(unsigned travel_time_lb) : stats_(travel_time_lb) {}
+  explicit search_result(lower_bounds_result const& lb_result){
+    stats_ = statistics();
+    stats_.total_lb = lb_result.total_lb;
+    stats_.travel_time_lb_ = lb_result.travel_time_lb_;
+    stats_.transfers_lb_ = lb_result.transfers_lb_;
+  }
   statistics stats_;
   std::vector<journey> journeys_;
   time interval_begin_{INVALID_TIME};
@@ -47,33 +43,6 @@ struct search_result {
 template <search_dir Dir, typename StartLabelGenerator, typename Label>
 struct search {
   static search_result get_connections(search_query const& q) {
-    mcd::hash_map<unsigned, std::vector<simple_edge>>
-        travel_time_lb_graph_edges;
-    mcd::hash_map<unsigned, std::vector<simple_edge>> transfers_lb_graph_edges;
-    auto const route_offset = q.sched_->station_nodes_.size();
-    for (auto const& e : q.query_edges_) {
-      auto const from_node = (Dir == search_dir::FWD) ? e.from_ : e.to_;
-      auto const to_node = (Dir == search_dir::FWD) ? e.to_ : e.from_;
-
-      // station graph
-      auto const from_station = from_node->get_station()->id_;
-      auto const to_station = to_node->get_station()->id_;
-
-      // interchange graph
-      auto const from_interchange = from_node->is_route_node()
-                                        ? route_offset + from_node->route_
-                                        : from_station;
-      auto const to_interchange = to_node->is_route_node()
-                                      ? route_offset + to_node->route_
-                                      : to_station;
-
-      auto const ec = e.get_minimum_cost();
-
-      travel_time_lb_graph_edges[to_station].emplace_back(
-          simple_edge{from_station, ec.time_});
-      transfers_lb_graph_edges[to_interchange].emplace_back(simple_edge{
-          from_interchange, static_cast<uint16_t>(ec.transfer_ ? 1 : 0)});
-    }
 
     auto const& meta_goals = q.sched_->stations_[q.to_->id_]->equivalent_;
     std::vector<int> goal_ids;
@@ -85,30 +54,19 @@ struct search {
         break;
       }
     }
+    // TODO: What does this if statement do?
     if (q.to_ == q.sched_->station_nodes_.at(1).get()) {
       goal_ids.push_back(q.to_->id_);
       is_goal[q.to_->id_] = true;
     }
 
-    lower_bounds lbs(
-        *q.sched_,  //
-        Dir == search_dir::FWD ? q.sched_->travel_time_lower_bounds_fwd_
-                               : q.sched_->travel_time_lower_bounds_bwd_,
-        Dir == search_dir::FWD ? q.sched_->transfers_lower_bounds_fwd_
-                               : q.sched_->transfers_lower_bounds_bwd_,
-        goal_ids, travel_time_lb_graph_edges, transfers_lb_graph_edges);
+   auto lb_result =
+        lower_bounds::get_lower_bounds_for_query(q, goal_ids, Dir);
+   lower_bounds& lbs = *lb_result.bounds_;
 
-    MOTIS_START_TIMING(travel_time_lb_timing);
-    lbs.travel_time_.run();
-    MOTIS_STOP_TIMING(travel_time_lb_timing);
-
-    if (!lbs.travel_time_.is_reachable(lbs.travel_time_[q.from_])) {
-      return search_result(MOTIS_TIMING_MS(travel_time_lb_timing));
-    }
-
-    MOTIS_START_TIMING(transfers_lb_timing);
-    lbs.transfers_.run();
-    MOTIS_STOP_TIMING(transfers_lb_timing);
+   if(!lb_result.target_reachable){
+     return search_result(lb_result);
+   }
 
     auto const create_start_edge = [&](node* to) {
       return Dir == search_dir::FWD ? make_foot_edge(nullptr, to)
@@ -118,26 +76,29 @@ struct search {
     auto const start_edge = create_start_edge(mutable_node);
 
     std::vector<edge> meta_edges;
-    if (q.from_->is_route_node() ||
+    if (q.from_->is_route_node() ||  // what does route node mean?
         q.from_ == q.sched_->station_nodes_.at(0).get()) {
-      if (!lbs.travel_time_.is_reachable(lbs.travel_time_[q.from_])) {
-        return search_result(MOTIS_TIMING_MS(travel_time_lb_timing));
+      if (!lbs.is_valid_time_diff(
+              lbs.time_from_node(q.from_))) {  // condition already checked?
+
+        return search_result(lb_result);  // TODO constructor wrong
       }
     } else if (!q.use_start_metas_) {
-      if (!lbs.travel_time_.is_reachable(lbs.travel_time_[q.from_])) {
-        return search_result(MOTIS_TIMING_MS(travel_time_lb_timing));
+      if (!lbs.is_valid_time_diff(
+              lbs.time_from_node(q.from_))) {  // same condition again?
+        return search_result(lb_result);
       }
       meta_edges.push_back(start_edge);
     } else {
       auto const& meta_froms = q.sched_->stations_[q.from_->id_]->equivalent_;
+      // check equivalent stations for reachability
       if (q.use_start_metas_ &&
           std::all_of(begin(meta_froms), end(meta_froms),
                       [&lbs, &q](station const* s) {
-                        return !lbs.travel_time_.is_reachable(
-                            lbs.travel_time_[q.sched_->station_nodes_[s->index_]
-                                                 .get()]);
+                        return !lbs.is_valid_time_diff(lbs.time_from_node(
+                            q.sched_->station_nodes_[s->index_].get()));
                       })) {
-        return search_result(MOTIS_TIMING_MS(travel_time_lb_timing));
+        return search_result(lb_result);
       }
       for (auto const& meta_from : meta_froms) {
         auto meta_edge = create_start_edge(
@@ -228,10 +189,23 @@ struct search {
     MOTIS_STOP_TIMING(pareto_dijkstra_timing);
 
     auto stats = pd.get_statistics();
-    stats.travel_time_lb_ = MOTIS_TIMING_MS(travel_time_lb_timing);
-    stats.transfers_lb_ = MOTIS_TIMING_MS(transfers_lb_timing);
+    stats.travel_time_lb_ = lb_result.travel_time_lb_;
+    stats.transfers_lb_ = lb_result.transfers_lb_;
+    stats.total_lb = lb_result.total_lb;
     stats.pareto_dijkstra_ = MOTIS_TIMING_MS(pareto_dijkstra_timing);
     stats.interval_extensions_ = search_iterations - 1;
+
+    if (q.extended_lb_stats_) {
+      auto lb_stats = lbs.get_stats();
+
+      stats.average_lb_travel_time_ =
+          static_cast<uint64_t>(std::round(lb_stats.avg_travel_time));
+      stats.average_lb_transfers_ =
+          static_cast<uint64_t>(std::round(100 * lb_stats.avg_transfer_amount));
+
+      stats.lb_invalid_time_nodes_count_ = lb_stats.invalid_time_count;
+      stats.lb_invalid_transfer_nodes_count_ = lb_stats.invalid_transfer_count;
+    }
 
     auto filtered = pd.get_results();
     filtered.erase(std::remove_if(begin(filtered), end(filtered),
@@ -249,6 +223,9 @@ struct search {
                                      }),
                          interval_begin, interval_end);
   }
+
+
+
 };
 
 }  // namespace motis::routing

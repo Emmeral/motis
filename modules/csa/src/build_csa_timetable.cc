@@ -56,24 +56,6 @@ void init_stop_to_connections(csa_timetable& tt) {
   }
 }
 
-bool is_in_allowed(node const* route_node) {
-  for (auto const& e : route_node->incoming_edges_) {
-    if (e->from_->is_station_node() && e->type() != edge::INVALID_EDGE) {
-      return true;
-    }
-  }
-  return false;
-}
-
-bool is_out_allowed(node const* route_node) {
-  for (auto const& e : route_node->edges_) {
-    if (e.to_->is_station_node() && e.type() != edge::INVALID_EDGE) {
-      return true;
-    }
-  }
-  return false;
-}
-
 std::vector<uint32_t> get_bucket_starts(
     std::vector<csa_connection>::const_iterator const it_begin,
     std::vector<csa_connection>::const_iterator const it_end,
@@ -146,7 +128,8 @@ std::vector<uint32_t> get_bucket_starts(
 
 trip_id get_connections_from_expanded_trips(
     csa_timetable& tt, schedule const& sched,
-    bool bridge_zero_duration_connections, bool add_footpath_connections) {
+    bool bridge_zero_duration_connections, bool add_footpath_connections,
+    bool ignore_interchange_restrictions = false) {
   scoped_timer build_timer{"csa: get connections"};
   trip_id trip_idx = 0;
   auto bridged_count = 0U;
@@ -158,13 +141,17 @@ trip_id get_connections_from_expanded_trips(
       utl::verify(!route_trips.empty(), "empty route");
       auto const first_trip = route_trips[0];
       auto const in_allowed =
-          utl::to_vec(stops(first_trip), [](trip_stop const& ts) {
-            return is_in_allowed(ts.get_route_node());
-          });
+          utl::to_vec(stops(first_trip),
+                      [ignore_interchange_restrictions](trip_stop const& ts) {
+                        return ignore_interchange_restrictions ||
+                               ts.get_route_node()->is_in_allowed();
+                      });
       auto const out_allowed =
-          utl::to_vec(stops(first_trip), [](trip_stop const& ts) {
-            return is_out_allowed(ts.get_route_node());
-          });
+          utl::to_vec(stops(first_trip),
+                      [ignore_interchange_restrictions](trip_stop const& ts) {
+                        return ignore_interchange_restrictions ||
+                               ts.get_route_node()->is_out_allowed();
+                      });
 
       for (auto const& trp : route_trips) {
         auto const trp_sections = sections{trp};
@@ -288,7 +275,7 @@ void add_footpaths(schedule const& sched, csa_timetable& tt) {
 
 std::unique_ptr<csa_timetable> build_csa_timetable(
     schedule const& sched, bool const bridge_zero_duration_connections,
-    bool const add_footpath_connections) {
+    bool const add_footpath_connections, bool ignore_interchange_restrictions) {
   scoped_timer timer("building csa timetable");
 
   auto tt = std::make_unique<csa_timetable>();
@@ -300,7 +287,8 @@ std::unique_ptr<csa_timetable> build_csa_timetable(
 
   LOG(info) << "Creating CSA Connections";
   tt->trip_count_ = get_connections_from_expanded_trips(
-      *tt, sched, bridge_zero_duration_connections, add_footpath_connections);
+      *tt, sched, bridge_zero_duration_connections, add_footpath_connections,
+      ignore_interchange_restrictions);
 
   init_trip_to_connections(*tt);
   init_stop_to_connections(*tt);

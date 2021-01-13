@@ -15,8 +15,8 @@ struct transfers_initializer {
   static void init(Label& l, LowerBounds& lb) {
     l.transfers_ = 0;
 
-    auto const lb_val = lb.transfers_[l.get_node()];
-    if (lb.transfers_.is_reachable(lb_val)) {
+    auto const lb_val = lb.transfers_from_node(l.get_node());
+    if (lb.is_valid_transfer_amount(lb_val)) {
       l.transfers_lb_ = lb_val;
     } else {
       l.transfers_lb_ = std::numeric_limits<uint8_t>::max();
@@ -31,8 +31,8 @@ struct transfers_updater {
       ++l.transfers_;
     }
 
-    auto const lb_val = lb.transfers_[l.get_node()];
-    if (lb.transfers_.is_reachable(lb_val)) {
+    auto const lb_val = lb.transfers_from_node(l.get_node());
+    if (lb.is_valid_transfer_amount(lb_val)) {
       l.transfers_lb_ = l.transfers_ + lb_val;
     } else {
       l.transfers_lb_ = std::numeric_limits<uint8_t>::max();

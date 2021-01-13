@@ -146,14 +146,15 @@ std::vector<Offset<Problem>> convert_problems(
 }
 
 Offset<Connection> to_connection(FlatBufferBuilder& b, journey const& j) {
-  return CreateConnection(b, b.CreateVector(convert_stops(b, j.stops_)),
-                          b.CreateVector(convert_moves(b, j.transports_)),
-                          b.CreateVector(convert_trips(b, j.trips_)),
-                          b.CreateVector(convert_attributes(b, j.attributes_)),
-                          b.CreateVector(convert_free_texts(b, j.free_texts_)),
-                          b.CreateVector(convert_problems(b, j.problems_)),
-                          j.night_penalty_, j.db_costs_,
-                          status_to_fbs(j.status_));
+  return CreateConnection(
+      b, b.CreateVector(convert_stops(b, j.stops_)),
+      b.CreateVector(convert_moves(b, j.transports_)),
+      b.CreateVector(convert_trips(b, j.trips_)),
+      b.CreateVector(convert_attributes(b, j.attributes_)),
+      b.CreateVector(convert_free_texts(b, j.free_texts_)),
+      b.CreateVector(convert_problems(b, j.problems_)), j.night_penalty_,
+      j.db_costs_, j.price_, j.transfer_class_max_, j.transfer_class_sum_,
+      j.occupancy_max_, j.occupancy_, status_to_fbs(j.status_));
 }
 
 }  // namespace motis

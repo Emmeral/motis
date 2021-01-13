@@ -26,6 +26,33 @@ inline auto make_ontrip_pareto_set() {
 }
 
 template <typename CSASearch>
+std::vector<std::array<time, MAX_TRANSFERS + 1>> get_arrival_times_tem(
+    schedule const&, csa_timetable const& tt, csa_query const& q) {
+  csa_statistics stats;
+
+  if (q.is_ontrip()) {
+    MOTIS_START_TIMING(total_timing);
+    CSASearch csa(tt, q.search_interval_.begin_, stats);
+    for (auto const& start_idx : q.meta_starts_) {
+      csa.add_start(tt.stations_.at(start_idx), 0);
+    }
+
+    MOTIS_START_TIMING(search_timing);
+    csa.search();
+    MOTIS_STOP_TIMING(search_timing);
+
+    MOTIS_STOP_TIMING(total_timing);
+
+    stats.search_duration_ = MOTIS_TIMING_MS(search_timing);
+    stats.total_duration_ = MOTIS_TIMING_MS(total_timing);
+
+    return csa.arrival_time_;
+  } else {
+    throw std::system_error(error::search_type_not_supported);
+  }
+}
+
+template <typename CSASearch>
 response run_search(schedule const& sched, csa_timetable const& tt,
                     csa_query const& q) {
   csa_statistics stats;
@@ -60,6 +87,27 @@ response run_search(schedule const& sched, csa_timetable const& tt,
     return pretrip<pretrip_iterated_ontrip_search<CSASearch>>(sched, tt, q,
                                                               stats)
         .search();
+  }
+}
+
+template <search_dir Dir>
+std::vector<std::array<time, MAX_TRANSFERS + 1>> dispatch_arrival_times(
+    schedule const& sched, csa_timetable const& tt, csa_query const& q,
+    SearchType const search_type, implementation_type const impl_type) {
+  switch (impl_type) {
+    case implementation_type::CPU:
+      switch (search_type) {
+        case SearchType_Default:
+        case SearchType_Accessibility:
+          return get_arrival_times_tem<cpu::csa_search<Dir>>(sched, tt, q);
+        default: throw std::system_error(error::search_type_not_supported);
+      }
+
+#ifdef MOTIS_AVX
+    case implementation_type::CPU_SSE:
+#endif
+
+    default: throw std::system_error(error::search_type_not_supported);
   }
 }
 
@@ -111,6 +159,26 @@ response dispatch_search_type(schedule const& sched, csa_timetable const& tt,
 
     default: throw std::system_error(error::search_type_not_supported);
   }
+}
+
+std::vector<std::array<time, MAX_TRANSFERS + 1>> run_arrival_times(
+    schedule const& sched, csa_timetable const& tt, csa_query const& q,
+    SearchType const search_type, implementation_type const impl_type) {
+  if ((tt.fwd_connections_.empty() && q.dir_ == search_dir::FWD) ||
+      (tt.bwd_connections_.empty() && q.dir_ == search_dir::BWD)) {
+
+    auto invalid = q.dir_ == search_dir::FWD ? std::numeric_limits<time>::max()
+                                             : std::numeric_limits<time>::min();
+    std::vector<std::array<time, MAX_TRANSFERS + 1>> r(
+        tt.stations_.size(),
+        array_maker<time, MAX_TRANSFERS + 1>::make_array(invalid));
+    return r;
+  }
+
+  return q.dir_ == search_dir::FWD ? dispatch_arrival_times<search_dir::FWD>(
+                                         sched, tt, q, search_type, impl_type)
+                                   : dispatch_arrival_times<search_dir::BWD>(
+                                         sched, tt, q, search_type, impl_type);
 }
 
 response run_csa_search(schedule const& sched, csa_timetable const& tt,

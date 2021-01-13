@@ -81,4 +81,14 @@ motis::module::msg_ptr csa::route(motis::module::msg_ptr const& msg,
   return make_msg(mc);
 }
 
+std::vector<std::array<time, MAX_TRANSFERS + 1>> get_arrival_times(
+    csa_timetable const& csa_tt, csa_query const& csa_q) {
+  auto const& sched = get_schedule();
+
+  SearchType search_type = SearchType_Default;
+  implementation_type impl_type = implementation_type::CPU;
+
+  return run_arrival_times(sched, csa_tt, csa_q, search_type, impl_type);
+}
+
 }  // namespace motis::csa

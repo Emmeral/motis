@@ -67,6 +67,7 @@ include "ris/RISMessage.fbs";
 include "ris/RISPurgeRequest.fbs";
 include "routing/RoutingRequest.fbs";
 include "routing/RoutingResponse.fbs";
+include "routing/LowerBoundsResponse.fbs";
 include "rt/RtUpdate.fbs";
 include "rt/RtWriteGraphRequest.fbs";
 include "tripbased/TripBasedTripDebugRequest.fbs";
@@ -201,16 +202,17 @@ union MsgContent {
   motis.ris.RISPurgeRequest                                               = 083,
   motis.routing.RoutingRequest                                            = 084,
   motis.routing.RoutingResponse                                           = 085,
-  motis.rt.RtEventInfo                                                    = 086,
-  motis.rt.RtDelayUpdate                                                  = 087,
-  motis.rt.RtTrackUpdate                                                  = 088,
-  motis.rt.RtFreeTextUpdate                                               = 089,
-  motis.rt.RtRerouteUpdate                                                = 090,
-  motis.rt.RtUpdate                                                       = 091,
-  motis.rt.RtUpdates                                                      = 092,
-  motis.rt.RtWriteGraphRequest                                            = 093,
-  motis.tripbased.TripBasedTripDebugRequest                               = 094,
-  motis.tripbased.TripBasedTripDebugResponse                              = 095
+  motis.routing.LowerBoundsResponse                                       = 086,
+  motis.rt.RtEventInfo                                                    = 087,
+  motis.rt.RtDelayUpdate                                                  = 088,
+  motis.rt.RtTrackUpdate                                                  = 089,
+  motis.rt.RtFreeTextUpdate                                               = 090,
+  motis.rt.RtRerouteUpdate                                                = 091,
+  motis.rt.RtUpdate                                                       = 092,
+  motis.rt.RtUpdates                                                      = 093,
+  motis.rt.RtWriteGraphRequest                                            = 094,
+  motis.tripbased.TripBasedTripDebugRequest                               = 095,
+  motis.tripbased.TripBasedTripDebugResponse                              = 096
 }
 
 // Destination Examples:

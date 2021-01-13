@@ -14,7 +14,6 @@ struct statistics {
   statistics() = default;
   explicit statistics(uint64_t travel_time_lb)
       : travel_time_lb_{travel_time_lb} {}
-
   bool max_label_quit_{};
   std::size_t labels_created_{};
   uint64_t labels_popped_{};
@@ -29,12 +28,24 @@ struct statistics {
   uint64_t labels_equals_popped_{};
   uint64_t travel_time_lb_{};
   uint64_t transfers_lb_{};
+  uint64_t total_lb{};
   uint64_t price_l_b_{};
   uint64_t total_calculation_time_{};
   uint64_t pareto_dijkstra_{};
   uint64_t num_bytes_in_use_{};
   uint64_t labels_to_journey_{};
   uint64_t interval_extensions_{};
+
+  uint64_t average_lb_travel_time_{};
+  /**
+   * The average transfer lower bounds for all nodes.
+   * The average shall be multiplied by 100  before setting to have more
+   * precision as the statistics do not support floating point values
+   */
+  uint64_t average_lb_transfers_{};
+
+  uint64_t lb_invalid_time_nodes_count_{};
+  uint64_t lb_invalid_transfer_nodes_count_{};
 
   friend flatbuffers::Offset<Statistics> to_fbs(
       flatbuffers::FlatBufferBuilder& fbb, char const* category,
@@ -70,7 +81,13 @@ struct statistics {
     add_entry("total_calculation_time", s.total_calculation_time_);
     add_entry("transfers_lb", s.transfers_lb_);
     add_entry("travel_time_lb", s.travel_time_lb_);
+    add_entry("total_lb", s.total_lb);
     add_entry("interval_extensions", s.interval_extensions_);
+
+    add_entry("average_lb_travel_time", s.average_lb_travel_time_);
+    add_entry("average_lb_transfers", s.average_lb_transfers_);
+    add_entry("lb_invalid_time_nodes_count", s.lb_invalid_time_nodes_count_);
+    add_entry("lb_invalid_transfer_nodes_count", s.lb_invalid_transfer_nodes_count_);
 
     return CreateStatistics(fbb, fbb.CreateString(category),
                             fbb.CreateVectorOfSortedTables(&stats));
@@ -102,7 +119,12 @@ struct statistics {
          {"total_calculation_time", s.total_calculation_time_},
          {"transfers_lb", s.transfers_lb_},
          {"travel_time_lb", s.travel_time_lb_},
-         {"interval_extensions", s.interval_extensions_}}};
+         {"total_lb", s.total_lb},
+         {"interval_extensions", s.interval_extensions_},
+         {"average_lb_travel_time", s.average_lb_travel_time_},
+         {"average_lb_transfers", s.average_lb_transfers_},
+         {"lb_invalid_time_nodes_count", s.lb_invalid_time_nodes_count_},
+         {"lb_invalid_transfer_nodes_count", s.lb_invalid_transfer_nodes_count_}}};
   }
 };
 

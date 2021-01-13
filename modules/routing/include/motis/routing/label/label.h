@@ -1,7 +1,7 @@
 #pragma once
 
 #include "motis/core/schedule/edges.h"
-#include "motis/routing/lower_bounds.h"
+#include "motis/routing/lower_bounds/lower_bounds.h"
 
 namespace motis::routing {
 

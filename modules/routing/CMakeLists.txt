@@ -12,6 +12,7 @@ target_link_libraries(motis-routing
   ${Boost_SYSTEM_LIBRARY}
   motis-module
   motis-core
+  motis-csa
 )
 if (MSVC)
     set_target_properties(motis-routing PROPERTIES COMPILE_FLAGS "${MOTIS_CXX_FLAGS} /bigobj")
