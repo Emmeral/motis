@@ -80,7 +80,7 @@ struct label : public Data {  // NOLINT
     return Dominance::result_dominates(false, *this, o);
   }
 
-  static constexpr bool ADV_RESULT_DOMINATION = false;
+  static constexpr bool ADV_RESULT_DOMINATION = true;
 
   /**
    * Returns true if this label has a chance to be in the given result set

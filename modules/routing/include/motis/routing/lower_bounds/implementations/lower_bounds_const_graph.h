@@ -42,11 +42,11 @@ public:
 
       // interchange graph
       auto const from_interchange = from_node->is_route_node()
-                                    ? route_offset + from_node->route_
-                                    : from_station;
+                                        ? route_offset + from_node->route_
+                                        : from_station;
       auto const to_interchange = to_node->is_route_node()
-                                  ? route_offset + to_node->route_
-                                  : to_station;
+                                      ? route_offset + to_node->route_
+                                      : to_station;
 
       auto const ec = e.get_minimum_cost();
 
@@ -56,6 +56,14 @@ public:
           from_interchange, static_cast<uint16_t>(ec.transfer_ ? 1 : 0)});
     }
   }
+
+  lower_bounds_const_graph(lower_bounds_const_graph&& other) noexcept
+      : lower_bounds<Label>(other.routing_query_, other.search_direction_),
+        additional_time_edges_(std::move(other.additional_time_edges_)),
+        additional_transfer_edges_(std::move(other.additional_transfer_edges_)),
+        travel_time_(std::move(other.travel_time_), additional_time_edges_),
+        transfers_(std::move(other.transfers_), additional_transfer_edges_) {}
+
   time_diff_t time_from_node(node const* n) const override {
     return travel_time_[n];
   }

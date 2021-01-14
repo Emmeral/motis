@@ -180,6 +180,15 @@ public:
     }
   }
 
+  constant_graph_dijkstra(
+      constant_graph_dijkstra const&& other,
+      mcd::hash_map<unsigned, std::vector<simple_edge>> const& additional_edges)
+      : graph_(std::move(other.graph_)),
+        pq_(std::move(other.pq_)),
+        dists_(std::move(other.dists_)),
+        additional_edges_(additional_edges),
+        map_node_(std::move(other.map_node_)) {}
+
   inline dist_t operator[](node const* n) const {
     auto const idx = map_node_(n);
     assert(idx < dists_.size());

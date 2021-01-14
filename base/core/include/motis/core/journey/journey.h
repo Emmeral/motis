@@ -99,8 +99,6 @@ struct journey {
   unsigned int transfer_class_sum_{0};
   unsigned int occupancy_max_{0};
   unsigned int occupancy_{0};
-  unsigned int waiting_time_{0};
-  unsigned int adj_waiting_time_{0};
 };
 
 }  // namespace motis

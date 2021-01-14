@@ -57,7 +57,7 @@ struct price_initializer {
 
 struct price_updater {
   template <typename Label, typename LowerBounds>
-  static void update(Label& l, edge_cost const& ec, LowerBounds& lb) {
+  static void update(Label& l, edge_cost const& ec, LowerBounds&) {
     if (ec.connection_ != nullptr) {
       connection const* con = ec.connection_->full_con_;
       switch (con->clasz_) {
@@ -122,7 +122,7 @@ struct price_updater {
         std::min(price_sum, MAX_PRICE) + l.prices_[ADDITIONAL_PRICE];
     l.time_included_price_ = l.total_price_ + l.travel_time_ * MINUTELY_WAGE;
     l.time_included_price_lb_ =
-        l.total_price_ + lb.time_from_label(l) * MINUTELY_WAGE;
+        l.total_price_ + l.travel_time_lb_ * MINUTELY_WAGE;
   }
 };
 

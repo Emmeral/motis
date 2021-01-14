@@ -55,8 +55,6 @@ inline search_result search_dispatch(search_query const& q,
       return get_connections<accessibility_label<Dir>, Gen>(q);
     case SearchType_Price:
       return get_connections<price_label<Dir>, Gen>(q);
-    case SearchType_WaitingTime:
-      return get_connections<waiting_time_label<Dir>, Gen>(q);
     case SearchType_Occupancy:
       return get_connections<occupancy_label<Dir>, Gen>(q);
     case SearchType_OccupancySum:
