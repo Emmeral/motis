@@ -337,6 +337,7 @@ private:
   }
 
   bool feasible_considering_results(Label* label) {
+    stats_.total_result_comparisons_ += results_.size();
     return label->may_be_in_result_set(results_, optimal_results_);
   }
 

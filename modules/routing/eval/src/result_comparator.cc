@@ -68,18 +68,12 @@ void print(journey_meta_data const& con) {
     return ss.str();
   };
 
-  auto const format_waiting_time = [&](journey_meta_data const& j) {
-    std::stringstream ss;
-    ss << "WT: " << format_duration(j.waiting_time_ * 60) << "/"
-       << format_duration(j.adj_waiting_time_ * 60);
-    return ss.str();
-  };
 
   std::cout << std::right << std::setw(13) << format_duration(con.duration_)  //
             << " [" << format_time(con.get_departure_time()) << " - "
             << format_time(con.get_arrival_time()) << "]\t"
             << format_price(con.price_) << " "  //
-            << format_occupancy(con) << " " << format_waiting_time(con) << "\t"
+            << format_occupancy(con) << "\t"
             << std::setw(5) << con.transfers_;
 }
 

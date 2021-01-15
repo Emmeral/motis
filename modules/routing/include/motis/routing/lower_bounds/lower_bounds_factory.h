@@ -19,11 +19,11 @@ std::unique_ptr<lower_bounds<Label>> combine_with_optimality(
                                              csa_optimality_calculator>(
             q, dir, std::move(lb), std::move(optimality_delegate)));
 
-    return std::move(lb_delegate);
+    return lb_delegate;
   } else {
     auto lb_ptr =
         std::unique_ptr<lower_bounds<Label>>(new LowerBounds(std::move(lb)));
-    return  std::move(lb_ptr);
+    return lb_ptr;
   }
 }
 
