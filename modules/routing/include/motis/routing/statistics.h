@@ -18,6 +18,7 @@ struct statistics {
   std::size_t labels_created_{};
   uint64_t labels_popped_{};
   uint64_t labels_dominated_by_results_{};
+  uint64_t total_result_comparisons_{};
   uint64_t labels_filtered_{};
   uint64_t labels_dominated_by_former_labels_{};
   uint64_t labels_dominated_by_later_labels_{};
@@ -35,7 +36,6 @@ struct statistics {
   uint64_t transfers_lb_{};
   uint64_t optimality_lb_{};
   uint64_t total_lb{};
-  uint64_t price_l_b_{};
   uint64_t total_calculation_time_{};
   uint64_t pareto_dijkstra_{};
   uint64_t num_bytes_in_use_{};
@@ -71,6 +71,7 @@ struct statistics {
     add_entry("labels_dominated_by_later_labels",
               s.labels_dominated_by_later_labels_);
     add_entry("labels_dominated_by_results", s.labels_dominated_by_results_);
+    add_entry("total_result_comparisons", s.total_result_comparisons_);
     add_entry("labels_equals_popped", s.labels_equals_popped_);
       add_entry("labels_optimals_popped", s.labels_optimals_popped_);
     add_entry("labels_filtered", s.labels_filtered_);
@@ -118,6 +119,7 @@ struct statistics {
          {"labels_dominated_by_later_labels",
           s.labels_dominated_by_later_labels_},
          {"labels_dominated_by_results", s.labels_dominated_by_results_},
+         {"total_result_comparisons", s.total_result_comparisons_},
          {"labels_equals_popped", s.labels_equals_popped_},
          {"labels_optimals_popped", s.labels_optimals_popped_},
          {"labels_filtered", s.labels_filtered_},
