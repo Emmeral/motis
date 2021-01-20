@@ -81,9 +81,11 @@ struct generator_settings : public conf::configuration {
       {"DefaultPrice", SearchType_DefaultPrice},
       {"DefaultPriceRegional", SearchType_DefaultPriceRegional},
       {"Price", SearchType_Price},
-      {"WaitingTime", SearchType_WaitingTime},
+      {"PriceRegio", SearchType_PriceRegio},
+      {"PriceWage", SearchType_PriceWage},
+      {"PriceWageRegio", SearchType_PriceWageRegio},
       {"Occupancy", SearchType_Occupancy},
-      {"OccupancyBoth", SearchType_Occupancy},
+      {"OccupancyBoth", SearchType_OccupancyBoth},
       {"OccupancySum", SearchType_OccupancySum},
       {"PriceOccupancy", SearchType_PriceOccupancy}};
 

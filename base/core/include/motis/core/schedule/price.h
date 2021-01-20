@@ -13,6 +13,9 @@
 
 namespace motis {
 
+
+constexpr int MINIMAL_PRICE_PER_KM = 12;
+
 inline int get_price_per_km(service_class const clasz) {
   switch (clasz) {
     case service_class::AIR: return 25;

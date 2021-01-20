@@ -2,6 +2,7 @@
 
 #include "motis/hash_map.h"
 #include "lower_bounds.h"
+#include "lower_bounds_price.h"
 
 #include "motis/core/common/timing.h"
 #include "motis/core/schedule/constant_graph.h"
@@ -15,26 +16,32 @@ template <typename Label>
 class lower_bounds_const_graph : public lower_bounds<Label> {
 
 public:
-  lower_bounds_const_graph(
-      search_query const& routing_query, search_dir const& search_direction,
-      const std::vector<int>& goals)
+  lower_bounds_const_graph(search_query const& routing_query,
+                           search_dir const& search_direction,
+                           const std::vector<int>& goals)
       : lower_bounds<Label>(routing_query, search_direction),
-        travel_time_(search_direction == search_dir::FWD
-                     ? this->routing_query_.sched_->travel_time_lower_bounds_fwd_
-                     : this->routing_query_.sched_->travel_time_lower_bounds_bwd_,
-                     goals, additional_time_edges_),
-        transfers_(search_direction == search_dir::FWD
-                   ? this->routing_query_.sched_->transfers_lower_bounds_fwd_
-                   : this->routing_query_.sched_->transfers_lower_bounds_bwd_,
-                   goals, additional_transfer_edges_,
-                   map_interchange_graph_node(
-                       this->routing_query_.sched_->station_nodes_.size())) {
+        travel_time_(
+            search_direction == search_dir::FWD
+                ? this->routing_query_.sched_->travel_time_lower_bounds_fwd_
+                : this->routing_query_.sched_->travel_time_lower_bounds_bwd_,
+            goals, additional_time_edges_),
+        transfers_(
+            search_direction == search_dir::FWD
+                ? this->routing_query_.sched_->transfers_lower_bounds_fwd_
+                : this->routing_query_.sched_->transfers_lower_bounds_bwd_,
+            goals, additional_transfer_edges_,
+            map_interchange_graph_node(
+                this->routing_query_.sched_->station_nodes_.size())),
+        lb_price_(routing_query, search_direction, goals) {
 
-    auto const route_offset = this->routing_query_.sched_->station_nodes_.size();
+    auto const route_offset =
+        this->routing_query_.sched_->station_nodes_.size();
     // construct the lower bounds graph for the additional edges
     for (auto const& e : this->routing_query_.query_edges_) {
-      auto const from_node = (this->search_direction_ == search_dir::FWD) ? e.from_ : e.to_;
-      auto const to_node = (this->search_direction_ == search_dir::FWD) ? e.to_ : e.from_;
+      auto const from_node =
+          (this->search_direction_ == search_dir::FWD) ? e.from_ : e.to_;
+      auto const to_node =
+          (this->search_direction_ == search_dir::FWD) ? e.to_ : e.from_;
 
       // station graph
       auto const from_station = from_node->get_station()->id_;
@@ -62,7 +69,8 @@ public:
         additional_time_edges_(std::move(other.additional_time_edges_)),
         additional_transfer_edges_(std::move(other.additional_transfer_edges_)),
         travel_time_(std::move(other.travel_time_), additional_time_edges_),
-        transfers_(std::move(other.transfers_), additional_transfer_edges_) {}
+        transfers_(std::move(other.transfers_), additional_transfer_edges_),
+        lb_price_(std::move(other.lb_price_)) {}
 
   time_diff_t time_from_node(node const* n) const override {
     return travel_time_[n];
@@ -75,6 +83,13 @@ public:
   }
   bool is_valid_transfer_amount(interchanges_t amount) const override {
     return transfers_.is_reachable(amount);
+  };
+
+  virtual uint16_t price_from_node(node const* n) override {
+    return lb_price_.price_from_node(n);
+  };
+  virtual bool is_valid_price_amount(uint16_t amount) const override {
+    return lb_price_.is_valid_price_amount(amount);
   };
 
   lower_bounds_result<Label> calculate() override {
@@ -98,6 +113,8 @@ public:
     MOTIS_STOP_TIMING(transfers_timing);
     result.transfers_lb_ = MOTIS_TIMING_MS(transfers_timing);
     result.total_lb = result.transfers_lb_ + result.travel_time_lb_;
+
+    lb_price_.calculate();
     return result;
   }
   void calculate_timing() { travel_time_.run(); }
@@ -109,6 +126,8 @@ private:
 
   constant_graph_dijkstra<MAX_TRAVEL_TIME, map_station_graph_node> travel_time_;
   constant_graph_dijkstra<MAX_TRANSFERS, map_interchange_graph_node> transfers_;
+
+  lower_bounds_price<Label> lb_price_;
 };
 
 }  // namespace motis::routing

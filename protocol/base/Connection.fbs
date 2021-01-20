@@ -89,11 +89,8 @@ table Connection {
   night_penalty:ushort;
   db_costs:ushort;
   price:ushort;
-  transfer_class_max:ushort;
-  transfer_class_sum:ushort;
+  price_wage:ushort;
   occupancy_max:ushort;
   occupancy:ushort;
-  waiting_time:ushort;
-  adj_waiting_time:ushort;
   status:ConnectionStatus;
 }

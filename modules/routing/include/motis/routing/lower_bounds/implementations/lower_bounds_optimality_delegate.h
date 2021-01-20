@@ -46,6 +46,13 @@ public:
     return bounds_delegate_.is_valid_transfer_amount(amount);
   }
 
+  uint16_t price_from_node(node const* n) override {
+    return bounds_delegate_.price_from_node(n);
+  };
+  bool is_valid_price_amount(uint16_t amount) const override {
+    return bounds_delegate_.is_valid_price_amount(amount);
+  };
+
   bool is_on_optimal_time_journey(Label& l) const override {
     return optimality_delegate_.is_optimal(l);
   }

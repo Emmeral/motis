@@ -54,7 +54,13 @@ inline search_result search_dispatch(search_query const& q,
     case SearchType_Accessibility:
       return get_connections<accessibility_label<Dir>, Gen>(q);
     case SearchType_Price:
-      return get_connections<price_label<Dir>, Gen>(q);
+      return get_connections<price_label<Dir, false>, Gen>(q);
+    case SearchType_PriceRegio:
+      return get_connections<price_label<Dir, true>, Gen>(q);
+    case SearchType_PriceWage:
+      return get_connections<price_wage_label<Dir, false>, Gen>(q);
+    case SearchType_PriceWageRegio:
+      return get_connections<price_wage_label<Dir, true>, Gen>(q);
     case SearchType_Occupancy:
       return get_connections<occupancy_label<Dir>, Gen>(q);
     case SearchType_OccupancySum:

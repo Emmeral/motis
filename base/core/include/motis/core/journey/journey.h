@@ -95,8 +95,7 @@ struct journey {
   std::vector<problem> problems_;
 
   unsigned night_penalty_{0}, db_costs_{0};
-  unsigned int transfer_class_max_{0};
-  unsigned int transfer_class_sum_{0};
+  unsigned int price_wage{};
   unsigned int occupancy_max_{0};
   unsigned int occupancy_{0};
 };

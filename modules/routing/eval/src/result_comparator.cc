@@ -68,11 +68,11 @@ void print(journey_meta_data const& con) {
     return ss.str();
   };
 
-
   std::cout << std::right << std::setw(13) << format_duration(con.duration_)  //
             << " [" << format_time(con.get_departure_time()) << " - "
             << format_time(con.get_arrival_time()) << "]\t"
-            << format_price(con.price_) << " "  //
+            << format_price(con.price_) << "/" << format_price(con.price_wage_)
+            << " "  //
             << format_occupancy(con) << "\t"
             << std::setw(5) << con.transfers_;
 }

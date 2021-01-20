@@ -20,17 +20,25 @@ public:
   lower_bounds(search_query const& routing_query, search_dir search_direction)
       : routing_query_(routing_query), search_direction_(search_direction) {}
 
-  virtual time_diff_t time_from_node(node const* n) const = 0;
+  virtual time_diff_t time_from_node(node const* /*n*/) const { return 0; };
   virtual time_diff_t time_from_label(Label& l) const {
     return time_from_node(l.get_node());
   }
-  virtual bool is_valid_time_diff(time_diff_t diff) const = 0;
+  virtual bool is_valid_time_diff(time_diff_t /*diff*/) const { return true; };
 
   virtual interchanges_t transfers_from_label(Label& l) const {
     return transfers_from_node(l.get_node());
   };
-  virtual interchanges_t transfers_from_node(node const* n) const = 0;
-  virtual bool is_valid_transfer_amount(interchanges_t amount) const = 0;
+  virtual interchanges_t transfers_from_node(node const* /*n*/) const { return 0; };
+  virtual bool is_valid_transfer_amount(interchanges_t /*amount*/) const {
+    return true;
+  };
+
+  virtual uint16_t price_from_label(Label& l) {
+    return price_from_node(l.get_node());
+  };
+  virtual uint16_t price_from_node(node const* /*n*/)  { return 0; };
+  virtual bool is_valid_price_amount(uint16_t /*amount*/) const { return true;};
 
   virtual lower_bounds_result<Label> calculate() = 0;
 

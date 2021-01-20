@@ -21,32 +21,36 @@ namespace routing::output {
 
 template <typename Label>
 inline std::vector<unsigned> criteria_data(Label const&) {
-  return {0, 0, 0, 0, 0, 0};
+  return {0, 0, 0, 0};
 }
 
-template <search_dir Dir>
-inline std::vector<unsigned> criteria_data(price_label<Dir> const& l) {
-  return {l.total_price_, 0, 0, 0, 0, 0, 0, 0};
+template <search_dir Dir, bool MAX_REGIO>
+inline std::vector<unsigned> criteria_data(price_label<Dir, MAX_REGIO> const& l) {
+  return {l.total_price_, l.time_included_price_, 0, 0};
+}
+template <search_dir Dir, bool MAX_REGIO>
+inline std::vector<unsigned> criteria_data(price_wage_label<Dir, MAX_REGIO> const& l) {
+  return {l.total_price_, l.time_included_price_, 0, 0};
 }
 
 template <search_dir Dir>
 inline std::vector<unsigned> criteria_data(occupancy_label<Dir> const& l) {
-  return {0, 0, 0, l.occ_, l.max_occ_, 0};
+  return {0, 0, l.occ_, l.max_occ_, 0};
 }
 
 template <search_dir Dir>
 inline std::vector<unsigned> criteria_data(occupancy_sum_label<Dir> const& l) {
-  return {0, 0, 0, l.occ_, l.max_occ_, 0};
+  return {0, 0, l.occ_, l.max_occ_, 0};
 }
 
 template <search_dir Dir>
 inline std::vector<unsigned> criteria_data(occupancy_both_label<Dir> const& l) {
-  return {0, 0, 0, l.occ_, l.max_occ_, 0};
+  return {0, 0, l.occ_, l.max_occ_, 0};
 }
 template <search_dir Dir>
 inline std::vector<unsigned> criteria_data(
     price_occupancy_label<Dir> const& l) {
-  return {l.total_price_, 0, 0, l.occ_, l.max_occ_, 0};
+  return {l.total_price_, l.time_included_price_, l.occ_, l.max_occ_};
 }
 
 template <typename Label>
@@ -107,11 +111,9 @@ journey labels_to_journey(schedule const& sched, Label* label,
 
   std::vector<unsigned> criteria = criteria_data(*label);
   j.price_ = criteria[0];
-  j.transfer_class_max_ = criteria[1];
-  j.transfer_class_sum_ = criteria[2];
-  j.occupancy_ = criteria[3];
-  j.occupancy_max_ = criteria[4];
-  // j.temp_attr_amd_ = criteria[5];
+  j.price_wage = criteria[1];
+  j.occupancy_ = criteria[2];
+  j.occupancy_max_ = criteria[3];
 
   return j;
 }

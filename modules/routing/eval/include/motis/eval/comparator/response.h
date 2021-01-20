@@ -34,6 +34,7 @@ struct journey_meta_data {
                             [](Stop const* s) { return s->exit(); })) -
                             1)),
         price_(c->price()),
+        price_wage_(c->price_wage()),
         occ_max_(c->occupancy_max()),
         occupancy_(c->occupancy()){}
 
@@ -69,6 +70,7 @@ struct journey_meta_data {
   unsigned duration_;
   unsigned transfers_;
   uint32_t price_;
+  uint32_t price_wage_;
   uint32_t occ_max_;
   uint32_t occupancy_;
 };
