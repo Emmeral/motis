@@ -17,7 +17,7 @@ constexpr bool REGIONAL_MAX_PRICE_ENABLED_DEFAULT = false;
 constexpr uint16_t MINUTELY_WAGE = 8;
 constexpr uint16_t MAX_PRICE = 14000u;
 constexpr uint16_t MAX_PRICE_BUCKET = (MAX_PRICE) + 1000;
-constexpr uint16_t MAX_PRICE_WAGE_BUCKET =(MAX_PRICE) + MAX_TRAVEL_TIME_MINUTES * MINUTELY_WAGE + 1000;
+constexpr uint16_t MAX_PRICE_WAGE_BUCKET = (MAX_PRICE + MAX_TRAVEL_TIME_MINUTES * MINUTELY_WAGE) >> 3;
 
 struct price {
   uint16_t time_included_price_;
@@ -45,7 +45,8 @@ struct get_price_wage_bucket {
   template <typename Label>
   uint16_t operator()(Label const* l) {
     uint16_t p = (l->time_included_price_lb_);
-    return std::min(p, MAX_PRICE_WAGE_BUCKET);
+    uint16_t shifted = p >> 3;
+    return std::min(shifted, MAX_PRICE_WAGE_BUCKET);
   }
 };
 

@@ -113,12 +113,16 @@ struct response {
     auto less_ontrip = [*this](journey_meta_data j1, journey_meta_data j2) {
       if (is_fwd_) {
         // fwd ontrip station queries are compared by their arrival time
-        return std::make_tuple(j1.arrival_time_, j1.transfers_) <
-               std::make_tuple(j2.arrival_time_, j2.transfers_);
+        return std::make_tuple(j1.arrival_time_, j1.transfers_, j1.price_,
+                               j1.price_wage_, j1.occupancy_, j1.occ_max_) <
+               std::make_tuple(j2.arrival_time_, j2.transfers_, j2.price_,
+                               j2.price_wage_, j1.occupancy_, j1.occ_max_);
       } else {
         // bwd queries are compared by their departure time (later is better)
-        return std::make_tuple(-j1.departure_time_, j1.transfers_) <
-               std::make_tuple(-j2.departure_time_, j2.transfers_);
+        return std::make_tuple(-j1.departure_time_, j1.transfers_, j1.price_,
+                               j1.price_wage_, j1.occupancy_, j1.occ_max_) <
+               std::make_tuple(-j2.departure_time_, j2.transfers_, j2.price_,
+                               j2.price_wage_, j1.occupancy_, j1.occ_max_);
       }
     };
 

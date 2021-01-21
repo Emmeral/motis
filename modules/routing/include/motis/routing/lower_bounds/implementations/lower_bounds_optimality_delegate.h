@@ -81,7 +81,7 @@ public:
     }
     r.target_reachable = reachable;
     r.optimality_lb_ = MOTIS_TIMING_MS(optimality_timing);
-    r.total_lb = r.optimality_lb_ + r.transfers_lb_ + r.transfers_lb_;
+    r.total_lb = r.optimality_lb_ + r.travel_time_lb_ + r.transfers_lb_;
 
     return r;
   }

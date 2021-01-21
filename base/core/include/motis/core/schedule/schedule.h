@@ -45,6 +45,7 @@ struct schedule {
   mcd::hash_map<mcd::string, ptr<station>> eva_to_station_;
   mcd::hash_map<mcd::string, ptr<station>> ds100_to_station_;
   mcd::hash_map<mcd::string, service_class> classes_;
+  uint16_t cheapest_price_per_km_{std::numeric_limits<uint16_t>::max()};
   mcd::vector<mcd::string> tracks_;
   constant_graph travel_time_lower_bounds_fwd_;
   constant_graph travel_time_lower_bounds_bwd_;

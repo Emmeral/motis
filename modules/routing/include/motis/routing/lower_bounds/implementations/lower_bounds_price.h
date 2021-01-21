@@ -56,7 +56,7 @@ private:
     // TODO: Footpath handling could be more sophisticated
     distance_km = std::max(0.0, distance_km - SUBTRACTED_POSSIBLE_FOOTPATH_KM);
 
-    remaining_prices_[station_id] = distance_km * MINIMAL_PRICE_PER_KM;
+    remaining_prices_[station_id] = distance_km * sched.cheapest_price_per_km_;
 
     return remaining_prices_[station_id];
   }
