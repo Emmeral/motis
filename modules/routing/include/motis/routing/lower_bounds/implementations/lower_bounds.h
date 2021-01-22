@@ -120,6 +120,7 @@ struct lower_bounds_result {
   bool target_reachable{true};
   uint64_t travel_time_lb_{0};
   uint64_t transfers_lb_{0};
+  uint64_t price_lb_{0};
   uint64_t optimality_lb_{0};
   uint64_t total_lb{0};
 };

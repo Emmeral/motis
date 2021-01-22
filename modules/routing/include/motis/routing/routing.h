@@ -1,7 +1,6 @@
 #pragma once
 
 #include <motis/routing/lower_bounds/lower_bounds_type.h>
-#include <motis/routing/lower_bounds/optimality/optimality_type.h>
 #include <memory>
 #include <mutex>
 #include <vector>
@@ -37,7 +36,9 @@ private:
 
   std::mutex mem_pool_mutex_;
   std::vector<std::unique_ptr<memory>> mem_pool_;
-  lower_bounds_type lb_type_{lower_bounds_type::CG};
+  lower_bounds_travel_time_type lb_travel_time_type_{lower_bounds_travel_time_type::CG};
+  lower_bounds_transfers_type lb_transfers_type_{lower_bounds_transfers_type::CG};
+  lower_bounds_price_type lb_price_type_{lower_bounds_price_type::NONE};
   optimality_type optimality_type_{optimality_type::NONE};
 
   bool extended_lb_stats_{false};

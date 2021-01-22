@@ -24,7 +24,9 @@ struct search_query {
   bool use_dest_metas_{false};
   bool use_start_footpaths_{false};
   light_connection const* lcon_{nullptr};
-  lower_bounds_type lb_type_{lower_bounds_type::CG};
+  lower_bounds_travel_time_type lb_travel_time_type_{lower_bounds_travel_time_type::CG};
+  lower_bounds_transfers_type lb_transfers_type_{lower_bounds_transfers_type::CG};
+  lower_bounds_price_type lb_price_type_{lower_bounds_price_type::NONE};
   optimality_type optimality_type_{optimality_type::NONE};
   // only set if lower_bounds_type::CSA is used
   motis::csa::csa_timetable const* csa_timetable{nullptr};

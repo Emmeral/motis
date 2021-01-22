@@ -27,7 +27,12 @@ public:
     return true;
   }
 
-  lower_bounds_result<Label> calculate() override{
+  uint16_t price_from_node(node const* /*n*/) override { return 0; };
+  bool is_valid_price_amount(uint16_t /*amount*/) const override {
+    return true;
+  };
+
+  lower_bounds_result<Label> calculate() override {
     return lower_bounds_result<Label>{};
   }
 

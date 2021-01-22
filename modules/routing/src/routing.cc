@@ -41,8 +41,12 @@ namespace motis::routing {
 
 routing::routing() : module("Routing", "routing") {
 
-  param(lb_type_, "lb_type",
+  param(lb_travel_time_type_, "lb_travel_time",
         "Select the method to calculate lower bounds (cg|none)");
+  param(lb_transfers_type_, "lb_transfers",
+        "Select the method to calculate lower bounds (cg|none)");
+  param(lb_price_type_, "lb_price",
+        "Select the method to calculate lower bounds (distance|none)");
   param(optimality_type_, "optimality_type",
         "Select the method to calculate optimality constraints (csa|none)");
   param(extended_lb_stats_, "extended_lb_stats",
@@ -81,9 +85,11 @@ msg_ptr routing::route(msg_ptr const& msg) {
   query.mem_ = &mem.get();
 
   query.extended_lb_stats_ = extended_lb_stats_;
-  query.lb_type_ = lb_type_;
+  query.lb_travel_time_type_ = lb_travel_time_type_;
+  query.lb_transfers_type_ = lb_transfers_type_;
+  query.lb_price_type_ = lb_price_type_;
   query.optimality_type_ = optimality_type_;
-  if (optimality_type_ == optimality_type::CSA ) {
+  if (optimality_type_ == optimality_type::CSA) {
     query.csa_timetable = csa_timetable_.get();
   }
 
@@ -168,7 +174,9 @@ msg_ptr routing::lower_bounds(msg_ptr const& msg) {
   auto query = build_query(sched, req);
 
   query.extended_lb_stats_ = extended_lb_stats_;
-  query.lb_type_ = lb_type_;
+  query.lb_travel_time_type_ = lb_travel_time_type_;
+  query.lb_transfers_type_ = lb_transfers_type_;
+  query.lb_price_type_ = lb_price_type_;
   query.optimality_type_ = optimality_type_;
   if (optimality_type_ == optimality_type::CSA) {
     query.csa_timetable = csa_timetable_.get();
