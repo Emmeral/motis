@@ -37,6 +37,7 @@ module::msg_ptr process_lb_request(search_query query) {
   std::vector<flatbuffers::Offset<LowerBoundEntry>> offsets;
 
   for (auto const& station : query.sched_->stations_) {
+    auto index = station->index_;
     auto const& node = *query.sched_->station_nodes_[station->index_];
 
     auto eva_nr = station->eva_nr_.str();
@@ -61,7 +62,7 @@ module::msg_ptr process_lb_request(search_query query) {
     bool interchanges_valid = lbs->is_valid_transfer_amount(interchanges);
 
     auto offset = CreateLowerBoundEntry(
-        fbb, fbb.CreateString(eva_nr), time, time_valid, interchanges,
+        fbb, fbb.CreateString(eva_nr), index, time, time_valid, interchanges,
         interchanges_valid, fbb.CreateVector(route_offsets));
 
     offsets.emplace_back(offset);

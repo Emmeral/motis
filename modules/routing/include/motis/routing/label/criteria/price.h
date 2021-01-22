@@ -5,26 +5,29 @@
 namespace motis {
 namespace routing {
 
-enum {
-  MOTIS_LOCAL_TRANSPORT_PRICE,
-  MOTIS_REGIONAL_TRAIN_PRICE,
-  MOTIS_IC_PRICE,
-  MOTIS_ICE_PRICE,
-  ADDITIONAL_PRICE
-};
 constexpr uint16_t MOTIS_MAX_REGIONAL_TRAIN_TICKET_PRICE = 4200u;
 constexpr bool REGIONAL_MAX_PRICE_ENABLED_DEFAULT = false;
 constexpr uint16_t MINUTELY_WAGE = 8;
 constexpr uint16_t MAX_PRICE = 14000u;
 constexpr uint16_t MAX_PRICE_BUCKET = (MAX_PRICE) + 1000;
-constexpr uint16_t MAX_PRICE_WAGE_BUCKET = (MAX_PRICE + MAX_TRAVEL_TIME_MINUTES * MINUTELY_WAGE) >> 3;
+constexpr uint16_t MAX_PRICE_WAGE_BUCKET =
+    (MAX_PRICE + MAX_TRAVEL_TIME_MINUTES * MINUTELY_WAGE) >> 3;
+
+struct partial_prices {
+  uint16_t local_{0u};
+  uint16_t regional_{0u};
+  uint16_t ic_{0u};
+  uint16_t ice_{0u};
+  uint16_t other_{0u};
+  uint16_t additional_{0u};
+};
 
 struct price {
   uint16_t time_included_price_;
   uint16_t time_included_price_lb_;
   uint16_t total_price_lb_;
   uint16_t total_price_;
-  uint16_t prices_[5];
+  partial_prices prices_;
   bool ic_, ice_;
 };
 
@@ -65,11 +68,7 @@ struct price_initializer {
     }
     l.time_included_price_lb_ =
         l.total_price_lb_ + lb.time_from_label(l) * MINUTELY_WAGE;
-    l.prices_[0] = 0;
-    l.prices_[1] = 0;
-    l.prices_[2] = 0;
-    l.prices_[3] = 0;
-    l.prices_[4] = 0;
+    l.prices_ = partial_prices{};
     l.ic_ = false;
     l.ice_ = false;
   }
@@ -83,41 +82,39 @@ struct price_updater {
       connection const* con = ec.connection_->full_con_;
       switch (con->clasz_) {
         case service_class::ICE:
-          if (l.prices_[MOTIS_ICE_PRICE] == 0) {
+          if (l.prices_.ice_ == 0) {
             l.ice_ = true;
             l.ic_ = true;
-            if (l.prices_[MOTIS_IC_PRICE] != 0) {
-              l.prices_[MOTIS_ICE_PRICE] += 100 + con->price_;
+            if (l.prices_.ic_ != 0) {
+              l.prices_.ice_ += 100 + con->price_;
             } else {
-              l.prices_[MOTIS_ICE_PRICE] += 700 + con->price_;
+              l.prices_.ice_ += 700 + con->price_;
             }
           } else {
-            l.prices_[MOTIS_ICE_PRICE] += con->price_;
+            l.prices_.ice_ += con->price_;
           }
           break;
 
         case service_class::IC:
-          if (l.prices_[MOTIS_IC_PRICE] == 0) {
+          if (l.prices_.ic_ == 0) {
             l.ic_ = true;
-            if (l.prices_[MOTIS_ICE_PRICE] != 0) {
-              l.prices_[MOTIS_IC_PRICE] += con->price_;
+            if (l.prices_.ice_ != 0) {
+              l.prices_.ic_ += con->price_;
             } else {
-              l.prices_[MOTIS_IC_PRICE] += 600 + con->price_;
+              l.prices_.ic_ += 600 + con->price_;
             }
           } else {
-            l.prices_[MOTIS_IC_PRICE] += con->price_;
+            l.prices_.ic_ += con->price_;
           }
           break;
 
         case service_class::RE:
         case service_class::RB:
         case service_class::S:
-          l.prices_[MOTIS_REGIONAL_TRAIN_PRICE] += con->price_;
-          if (l.prices_[MOTIS_REGIONAL_TRAIN_PRICE] >
-                  MOTIS_MAX_REGIONAL_TRAIN_TICKET_PRICE &&
+          l.prices_.regional_ += con->price_;
+          if (l.prices_.regional_ > MOTIS_MAX_REGIONAL_TRAIN_TICKET_PRICE &&
               MAX_REGIO_ENABLED) {
-            l.prices_[MOTIS_REGIONAL_TRAIN_PRICE] =
-                MOTIS_MAX_REGIONAL_TRAIN_TICKET_PRICE;
+            l.prices_.regional_ = MOTIS_MAX_REGIONAL_TRAIN_TICKET_PRICE;
           }
 
           break;
@@ -125,29 +122,25 @@ struct price_updater {
         case service_class::N:
         case service_class::U:
         case service_class::STR:
-        case service_class::BUS:
-          l.prices_[MOTIS_LOCAL_TRANSPORT_PRICE] += con->price_;
-          break;
+        case service_class::BUS: l.prices_.local_ += con->price_; break;
         default:
+          l.prices_.other_ += con->price_;
           break;
-          // not supported, because legacy label
       }
     } else {
-      l.prices_[4] += ec.price_;
+      l.prices_.additional_ += ec.price_;
     }
 
-    const uint16_t price_sum = l.prices_[MOTIS_LOCAL_TRANSPORT_PRICE] +
-                               l.prices_[MOTIS_REGIONAL_TRAIN_PRICE] +
-                               l.prices_[MOTIS_ICE_PRICE] +
-                               l.prices_[MOTIS_IC_PRICE];
-    l.total_price_ =
-        std::min(price_sum, MAX_PRICE) + l.prices_[ADDITIONAL_PRICE];
+    const uint16_t price_sum = l.prices_.local_ + l.prices_.regional_ +
+                               l.prices_.ice_ + l.prices_.ic_ +
+                               l.prices_.other_;
+    l.total_price_ = std::min(price_sum, MAX_PRICE) + l.prices_.additional_;
 
     uint16_t price_sum_lb;
 
     if constexpr (MAX_REGIO_ENABLED) {
-      const uint16_t remaining_regio = MOTIS_MAX_REGIONAL_TRAIN_TICKET_PRICE -
-                                       l.prices_[MOTIS_REGIONAL_TRAIN_PRICE];
+      const uint16_t remaining_regio =
+          MOTIS_MAX_REGIONAL_TRAIN_TICKET_PRICE - l.prices_.regional_;
       price_sum_lb =
           price_sum + std::min(lb.price_from_label(l), remaining_regio);
     } else {
@@ -155,7 +148,7 @@ struct price_updater {
     }
 
     l.total_price_lb_ =
-        std::min(price_sum_lb, MAX_PRICE) + l.prices_[ADDITIONAL_PRICE];
+        std::min(price_sum_lb, MAX_PRICE) + l.prices_.additional_;
     l.time_included_price_ = l.total_price_ + l.travel_time_ * MINUTELY_WAGE;
     l.time_included_price_lb_ =
         l.total_price_lb_ + l.travel_time_lb_ * MINUTELY_WAGE;
@@ -178,7 +171,7 @@ struct price_dominance {
       }
 
       auto a_price = std::min(a.total_price_lb_ + add_p,
-                              MAX_PRICE + a.prices_[ADDITIONAL_PRICE]);
+                              MAX_PRICE + a.prices_.additional_);
       greater_ = a_price > b.total_price_lb_;
       smaller_ = a_price < b.total_price_lb_;
     }
@@ -205,10 +198,8 @@ struct price_dominance {
     inline uint16_t get_additional_regio_price(Label const& a, Label const& b) {
       // if the max regio price is used then the other label might have an
       // advantage if it is already at a higher price
-      if (b.prices_[MOTIS_REGIONAL_TRAIN_PRICE] >
-          a.prices_[MOTIS_REGIONAL_TRAIN_PRICE]) {
-        return (b.prices_[MOTIS_REGIONAL_TRAIN_PRICE] -
-                a.prices_[MOTIS_REGIONAL_TRAIN_PRICE]);
+      if (b.prices_.regional_ > a.prices_.regional_) {
+        return (b.prices_.regional_ - a.prices_.regional_);
       }
       return 0;
     }
@@ -285,10 +276,8 @@ struct price_wage_dominance {
     inline uint16_t get_additional_regio_price(Label const& a, Label const& b) {
       // if the max regio price is used then the other label might have an
       // advantage if it is already at a higher price
-      if (b.prices_[MOTIS_REGIONAL_TRAIN_PRICE] >
-          a.prices_[MOTIS_REGIONAL_TRAIN_PRICE]) {
-        return (b.prices_[MOTIS_REGIONAL_TRAIN_PRICE] -
-                a.prices_[MOTIS_REGIONAL_TRAIN_PRICE]);
+      if (b.prices_.regional_ > a.prices_.regional_) {
+        return (b.prices_.regional_ - a.prices_.regional_);
       }
       return 0;
     }
