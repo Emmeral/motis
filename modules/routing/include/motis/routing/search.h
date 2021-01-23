@@ -32,6 +32,7 @@ struct search_result {
     stats_ = statistics();
     stats_.total_lb = lb_result.total_lb;
     stats_.travel_time_lb_ = lb_result.travel_time_lb_;
+    stats_.price_lb_ = lb_result.price_lb_;
     stats_.optimality_lb_ = lb_result.optimality_lb_;
     stats_.transfers_lb_ = lb_result.transfers_lb_;
   }
@@ -188,13 +189,17 @@ struct search {
     }
     MOTIS_STOP_TIMING(pareto_dijkstra_timing);
 
-    auto stats = pd.get_statistics();
+    statistics stats = pd.get_statistics();
     stats.travel_time_lb_ = lb_result.travel_time_lb_;
     stats.transfers_lb_ = lb_result.transfers_lb_;
+    stats.price_lb_ = lb_result.price_lb_;
     stats.optimality_lb_ = lb_result.optimality_lb_;
     stats.total_lb = lb_result.total_lb;
     stats.pareto_dijkstra_ = MOTIS_TIMING_MS(pareto_dijkstra_timing);
     stats.interval_extensions_ = search_iterations - 1;
+    stats.labels_popped_total_ = stats.labels_popped_ +
+                                 stats.labels_equals_popped_ +
+                                 stats.labels_optimals_popped_;
 
     if (q.extended_lb_stats_) {
       auto lb_stats = lbs.get_stats();

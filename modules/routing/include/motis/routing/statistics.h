@@ -17,12 +17,14 @@ struct statistics {
   bool max_label_quit_{};
   std::size_t labels_created_{};
   uint64_t labels_popped_{};
+  uint64_t labels_popped_total_{};
   uint64_t labels_dominated_by_results_{};
   uint64_t total_result_comparisons_{};
   uint64_t labels_filtered_{};
   uint64_t labels_dominated_by_former_labels_{};
   uint64_t labels_dominated_by_later_labels_{};
   uint64_t labels_popped_until_first_result_{};
+  uint64_t labels_created_until_first_result_{};
   uint64_t labels_popped_until_first_non_opt_result_{};
   uint64_t labels_created_until_first_non_opt_result_{};
   uint64_t labels_popped_after_last_result_{};
@@ -34,6 +36,7 @@ struct statistics {
   uint64_t labels_optimals_popped_{};
   uint64_t travel_time_lb_{};
   uint64_t transfers_lb_{};
+  uint64_t price_lb_{};
   uint64_t optimality_lb_{};
   uint64_t total_lb{};
   uint64_t total_calculation_time_{};
@@ -73,13 +76,16 @@ struct statistics {
     add_entry("labels_dominated_by_results", s.labels_dominated_by_results_);
     add_entry("total_result_comparisons", s.total_result_comparisons_);
     add_entry("labels_equals_popped", s.labels_equals_popped_);
-      add_entry("labels_optimals_popped", s.labels_optimals_popped_);
+    add_entry("labels_optimals_popped", s.labels_optimals_popped_);
     add_entry("labels_filtered", s.labels_filtered_);
     add_entry("labels_popped_after_last_result",
               s.labels_popped_after_last_result_);
     add_entry("labels_popped", s.labels_popped_);
+    add_entry("labels_popped_total", s.labels_popped_total_);
     add_entry("labels_popped_until_first_result",
               s.labels_popped_until_first_result_);
+    add_entry("labels_created_until_first_result",
+              s.labels_created_until_first_result_);
     add_entry("labels_popped_until_first_non_opt_result",
               s.labels_popped_until_first_non_opt_result_);
     add_entry("labels_created_until_first_non_opt_result",
@@ -96,6 +102,7 @@ struct statistics {
     add_entry("total_calculation_time", s.total_calculation_time_);
     add_entry("transfers_lb", s.transfers_lb_);
     add_entry("travel_time_lb", s.travel_time_lb_);
+    add_entry("price_lb", s.price_lb_);
     add_entry("optimality_lb", s.optimality_lb_);
     add_entry("total_lb", s.total_lb);
     add_entry("interval_extensions", s.interval_extensions_);
@@ -126,8 +133,11 @@ struct statistics {
          {"labels_popped_after_last_result",
           s.labels_popped_after_last_result_},
          {"labels_popped", s.labels_popped_},
+         {"labels_popped_total", s.labels_popped_total_},
          {"labels_popped_until_first_result",
           s.labels_popped_until_first_result_},
+         {"labels_created_until_first_result",
+          s.labels_created_until_first_result_},
          {"labels_popped_until_first_non_opt_result",
           s.labels_popped_until_first_non_opt_result_},
          {"labels_created_until_first_non_opt_result",
@@ -144,13 +154,15 @@ struct statistics {
          {"total_calculation_time", s.total_calculation_time_},
          {"transfers_lb", s.transfers_lb_},
          {"travel_time_lb", s.travel_time_lb_},
+         {"price_lb", s.price_lb_},
          {"optimality_lb", s.optimality_lb_},
          {"total_lb", s.total_lb},
          {"interval_extensions", s.interval_extensions_},
          {"average_lb_travel_time", s.average_lb_travel_time_},
          {"average_lb_transfers", s.average_lb_transfers_},
          {"lb_invalid_time_nodes_count", s.lb_invalid_time_nodes_count_},
-         {"lb_invalid_transfer_nodes_count", s.lb_invalid_transfer_nodes_count_}}};
+         {"lb_invalid_transfer_nodes_count",
+          s.lb_invalid_transfer_nodes_count_}}};
   }
 };
 

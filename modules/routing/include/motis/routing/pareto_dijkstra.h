@@ -170,6 +170,7 @@ private:
         stats_.labels_popped_until_first_result_ =
             stats_.labels_popped_ + stats_.labels_optimals_popped_ +
             stats_.labels_equals_popped_;
+        stats_.labels_created_until_first_result_ = stats_.labels_created_;
       }
       if (stats_.labels_popped_until_first_non_opt_result_ == 0 &&
           !new_label->is_on_optimal_journey()) {
