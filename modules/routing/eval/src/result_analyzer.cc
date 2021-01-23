@@ -67,6 +67,34 @@ stat::entry quantile(std::vector<stat::entry> const& sorted_values, double q) {
   }
 }
 
+void print_category_csv(category& cat, uint64_t count, std::ofstream& os) {
+
+  std::vector<std::string> titles{"name",  "avg",   "Q(99)",
+                                  "Q(90)", "Q(80)", "Q(50)"};
+
+  for (auto i = 0; i < titles.size() - 1; ++i) {
+    os << titles[i] << ",";
+  }
+  os << titles[titles.size() - 1];
+  os << std::endl;
+
+  for (auto& s : cat.stats_) {
+    auto& stat = s.second;
+    if (stat.values_.empty()) {
+      continue;
+    }
+    std::sort(begin(stat.values_), end(stat.values_));
+    auto const avg = (stat.sum_ / static_cast<double>(count));
+
+    os << stat.name_ << ",";
+    os << avg;
+    for (auto q : {0.99, 0.9, 0.8, 0.5}) {
+      os << "," << quantile(stat.values_, q).value_;
+    }
+    os << std::endl;
+  }
+}
+
 void print_category(category& cat, uint64_t count, bool compact, int top) {
   std::cout << "\n"
             << cat.name_ << "\n"
@@ -74,8 +102,8 @@ void print_category(category& cat, uint64_t count, bool compact, int top) {
             << std::endl;
 
   int max_stat_size = 0;
-  for(auto& s : cat.stats_){
-    if(s.second.name_.size() > max_stat_size){
+  for (auto& s : cat.stats_) {
+    if (s.second.name_.size() > max_stat_size) {
       max_stat_size = s.second.name_.size();
     }
   }
@@ -136,6 +164,7 @@ int main(int argc, char* argv[]) {
   bool long_output = false;
   int top = 0;
   std::string filename = "results.txt";
+  std::string csv_filename = "";
   std::vector<std::string> filtered_categories;
 
   po::options_description desc("Options:");
@@ -150,6 +179,8 @@ int main(int argc, char* argv[]) {
       ("category,c", po::value<std::vector<std::string>>(&filtered_categories),
        "only print selected categories")
       ("top,t", po::value<int>(&top), "display the top N values")
+      ("output,o", po::value<std::string>(&csv_filename)->default_value(csv_filename),
+       "csv output file")
       ;
   // clang-format on
   po::positional_options_description pod;
@@ -173,6 +204,11 @@ int main(int argc, char* argv[]) {
 
   std::map<std::string, category> categories;
   motis::eval::stat connection_count;
+
+  std::ofstream csv_result;
+  if (!csv_filename.empty()) {
+    csv_result.open(csv_filename);
+  }
 
   std::ifstream in(filename);
   std::string line;
@@ -248,15 +284,25 @@ int main(int argc, char* argv[]) {
   if (filtered_categories.empty()) {
     for (auto& c : categories) {
       print_category(c.second, count, !long_output, top);
+      if (csv_result.is_open()) {
+        print_category_csv(c.second, count, csv_result);
+      }
     }
   } else {
     for (auto const& name : filtered_categories) {
       auto const c = categories.find(name);
       if (c != end(categories)) {
         print_category(c->second, count, !long_output, top);
+        if (csv_result.is_open()) {
+          print_category_csv(c->second, count, csv_result);
+        }
       } else {
         std::cout << "\n\n" << name << ": not found\n\n";
       }
     }
+  }
+
+  if (csv_result.is_open()) {
+    csv_result.close();
   }
 }
