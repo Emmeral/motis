@@ -86,7 +86,7 @@ struct label : public Data {  // NOLINT
    * Returns true if this label has a chance to be in the given result set
    */
   bool may_be_in_result_set(const std::vector<label*>& result_set,
-                            const std::vector<label*>& optimal_results) {
+                            const std::vector<label*>& optimal_results, uint64_t& comparison_amount) {
 
     // we already know that labels on optimal journeys will be a
     // valid result
@@ -112,6 +112,7 @@ struct label : public Data {  // NOLINT
         bool merged_valid = true;
         for (label* r : result_set) {
           if (comparable(*r)) {
+            ++comparison_amount;
             if (Dominance::template result_dominates<label, true>(true, *r, *this, opt_res)) {
               merged_valid = false;
               break;
@@ -135,6 +136,7 @@ struct label : public Data {  // NOLINT
     if (!optimals_exist) {
       for (label* r : result_set) {
         if (comparable(*r)) {
+          ++comparison_amount;
           if (Dominance::result_dominates(false, *r, *this)) {
             return false;
           }
