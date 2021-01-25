@@ -200,6 +200,9 @@ struct search {
     stats.labels_popped_total_ = stats.labels_popped_ +
                                  stats.labels_equals_popped_ +
                                  stats.labels_optimals_popped_;
+    stats.labels_dominated_by_results_perc_ =
+        (stats.labels_dominated_by_results_ * 10000.0) /
+        (stats.labels_created_);
 
     if (q.extended_lb_stats_) {
       auto lb_stats = lbs.get_stats();
