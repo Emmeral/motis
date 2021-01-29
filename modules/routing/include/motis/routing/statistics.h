@@ -46,6 +46,8 @@ struct statistics {
   uint64_t num_bytes_in_use_{};
   uint64_t labels_to_journey_{};
   uint64_t interval_extensions_{};
+  // how often a optimal result is dominated an replaced (by an equivalent)
+  uint64_t optimal_result_replaced_{};
 
   uint64_t average_lb_travel_time_{};
   /**
@@ -113,7 +115,9 @@ struct statistics {
     add_entry("average_lb_travel_time", s.average_lb_travel_time_);
     add_entry("average_lb_transfers", s.average_lb_transfers_);
     add_entry("lb_invalid_time_nodes_count", s.lb_invalid_time_nodes_count_);
-    add_entry("lb_invalid_transfer_nodes_count", s.lb_invalid_transfer_nodes_count_);
+    add_entry("lb_invalid_transfer_nodes_count",
+              s.lb_invalid_transfer_nodes_count_);
+    add_entry("optimal_result_replaced", s.optimal_result_replaced_);
 
     return CreateStatistics(fbb, fbb.CreateString(category),
                             fbb.CreateVectorOfSortedTables(&stats));
@@ -166,7 +170,8 @@ struct statistics {
          {"average_lb_transfers", s.average_lb_transfers_},
          {"lb_invalid_time_nodes_count", s.lb_invalid_time_nodes_count_},
          {"lb_invalid_transfer_nodes_count",
-          s.lb_invalid_transfer_nodes_count_}}};
+          s.lb_invalid_transfer_nodes_count_},
+         {"optimal_result_replaced", s.optimal_result_replaced_}}};
   }
 };
 

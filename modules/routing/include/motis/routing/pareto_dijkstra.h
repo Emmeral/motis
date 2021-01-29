@@ -226,6 +226,7 @@ private:
               std::find(optimal_results_.begin(), optimal_results_.end(), o);
           o->transfer_optimality_to(*terminal_label);
           optimal_results_.erase(o_it);
+          ++stats_.optimal_result_replaced_;
         }
         label_store_.release(o);
         it = results_.erase(it);
