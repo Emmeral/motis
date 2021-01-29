@@ -13,6 +13,9 @@ constexpr uint16_t MAX_PRICE_BUCKET = (MAX_PRICE) + 1000;
 constexpr uint16_t MAX_PRICE_WAGE_BUCKET =
     (MAX_PRICE + MAX_TRAVEL_TIME_MINUTES * MINUTELY_WAGE) >> 3;
 
+constexpr bool USE_TIME_LOWER_BOUNDS = true;
+constexpr bool USE_ADV_RES_DOM_MERGING = false;
+
 struct partial_prices {
   uint16_t local_{0u};
   uint16_t regional_{0u};
@@ -66,8 +69,13 @@ struct price_initializer {
     } else {
       l.total_price_lb_ = l.total_price_ + lb.price_from_label(l);
     }
-    l.time_included_price_lb_ =
-        l.total_price_lb_ + lb.time_from_label(l) * MINUTELY_WAGE;
+
+    if (USE_TIME_LOWER_BOUNDS) {
+      l.time_included_price_lb_ =
+          l.total_price_lb_ + lb.time_from_label(l) * MINUTELY_WAGE;
+    } else {
+      l.time_included_price_lb_ = l.total_price_lb_;
+    }
     l.prices_ = partial_prices{};
     l.ic_ = false;
     l.ice_ = false;
@@ -150,8 +158,13 @@ struct price_updater {
     l.total_price_lb_ =
         std::min(price_sum_lb, MAX_PRICE) + l.prices_.additional_;
     l.time_included_price_ = l.total_price_ + l.travel_time_ * MINUTELY_WAGE;
-    l.time_included_price_lb_ =
-        l.total_price_lb_ + l.travel_time_lb_ * MINUTELY_WAGE;
+    if (USE_TIME_LOWER_BOUNDS) {
+      l.time_included_price_lb_ =
+          l.total_price_lb_ + l.travel_time_lb_ * MINUTELY_WAGE;
+    } else {
+      l.time_included_price_lb_ =
+          l.total_price_lb_ + l.travel_time_ * MINUTELY_WAGE;
+    }
   }
 };
 
@@ -230,7 +243,8 @@ template<bool MAX_REGIO_ENABLED = REGIONAL_MAX_PRICE_ENABLED_DEFAULT>
 struct price_wage_dominance {
   template <typename Label>
   struct domination_info {
-    domination_info(Label const& a, Label const& b, bool add_price = true) {
+    domination_info(Label const& a, Label const& b, bool add_price = true,
+                    duration merged_time_lb = 0) {
 
       auto add_p = 0;
 
@@ -241,17 +255,25 @@ struct price_wage_dominance {
         }
       }
 
-      add_p = std::min(MAX_PRICE - a.total_price_lb_, add_p);
+      auto remaining_to_max = MAX_PRICE - a.total_price_lb_;
+      add_p = std::min(remaining_to_max, add_p);
       auto a_price = a.time_included_price_lb_ + add_p;
 
-      if(add_price){
+      if (add_price) {
         if (b.now_ > a.now_) {
           a_price += (b.now_ - a.now_) * MINUTELY_WAGE;
         }
       }
 
-      greater_ = a_price > b.time_included_price_lb_;
-      smaller_ = a_price < b.time_included_price_lb_;
+      uint16_t b_merged_time_included_price =
+          USE_ADV_RES_DOM_MERGING
+              ? b.total_price_lb_ + merged_time_lb * MINUTELY_WAGE
+              : 0;
+      auto b_price =
+          std::max(b_merged_time_included_price, b.time_included_price_lb_);
+
+      greater_ = a_price > b_price;
+      smaller_ = a_price < b_price;
     }
     inline bool greater() const { return greater_; }
     inline bool smaller() const { return smaller_; }
@@ -297,8 +319,10 @@ struct price_wage_dominance {
   }
   template <typename Label>
   static domination_info<Label> result_dominates(
-      Label const& a, Label const& b, Label const& /* opt_result_to_merge */) {
-    return result_dominates(a, b);
+      Label const& a, Label const& b, Label const& opt_result_to_merge) {
+    auto dom_info = domination_info<Label>(a, b, false,
+                                           opt_result_to_merge.travel_time_lb_);
+    return dom_info;
   }
 
   typedef bool has_result_dominates;
