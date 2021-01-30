@@ -112,12 +112,22 @@ public:
         if (is_route_node &&
             l.edge_->type() != edge::ROUTE_EDGE) {  // -> on leaving route node
           bool opt_leave = check_optimal_station_leave<Label>(l, node, i);
-          if (opt_leave) {
-            return true;
+          if (!opt_leave) {
+            continue;
           }
-        } else {  // otherwise just look at the current interval
-          return true;
+          // Also to prevent Jumping: The interval must have started when we
+          // entered the station. Otherwise the interval does not belong to our
+          // journey
+        } else if (l.pred_ != nullptr && l.pred_->get_node()->is_route_node() &&
+                   l.edge_->type() != edge::ROUTE_EDGE &&
+                   l.pred_->is_on_optimal_journey()) {  // some node which is
+                                                        // not an
+          // entering route node
+          if (i.start_ != l.pred_->current_end()) {
+            continue;
+          }
         }
+        return true;
       }
     }
     return false;
