@@ -172,6 +172,13 @@ private:
             stats_.labels_equals_popped_;
         stats_.labels_created_until_first_result_ = stats_.labels_created_;
       }
+      if (stats_.labels_created_until_opt_reproduction_ == 0) {
+        if (optimal_results_.size() >=
+            lower_bounds_.get_optimal_journey_count()) {
+          stats_.labels_created_until_opt_reproduction_ =
+              stats_.labels_created_;
+        }
+      }
       if (stats_.labels_popped_until_first_non_opt_result_ == 0 &&
           !new_label->is_on_optimal_journey()) {
         stats_.labels_popped_until_first_non_opt_result_ =
