@@ -225,7 +225,9 @@ struct search {
                                   }),
                    end(filtered));
 
-    stats.lb_price_accuracy_ = eval_price_lb(filtered) * 100 * 100;
+    std::pair<double, double> evaluation = eval_price_lb(filtered);
+    stats.lb_price_accuracy_ = evaluation.first * 100 * 100;
+    stats.lb_price_accuracy_raw_ = evaluation.second * 100 * 100;
 
     return search_result(stats,
                          utl::to_vec(filtered,
@@ -235,9 +237,6 @@ struct search {
                                      }),
                          interval_begin, interval_end);
   }
-
-
-
 };
 
 }  // namespace motis::routing

@@ -61,6 +61,8 @@ struct statistics {
   // how accurate predecessors of result are with lower bounds price (in percent
   // * 100 for better accuracy)
   uint64_t lb_price_accuracy_{};
+  // not including time as this depends on the time lower bounds
+  uint64_t lb_price_accuracy_raw_{};
 
   uint64_t lb_invalid_time_nodes_count_{};
   uint64_t lb_invalid_transfer_nodes_count_{};
@@ -126,6 +128,7 @@ struct statistics {
               s.lb_invalid_transfer_nodes_count_);
     add_entry("optimal_result_replaced", s.optimal_result_replaced_);
     add_entry("lb_price_accuracy", s.lb_price_accuracy_);
+    add_entry("lb_price_accuracy_raw", s.lb_price_accuracy_raw_);
 
     return CreateStatistics(fbb, fbb.CreateString(category),
                             fbb.CreateVectorOfSortedTables(&stats));
@@ -182,7 +185,8 @@ struct statistics {
          {"lb_invalid_transfer_nodes_count",
           s.lb_invalid_transfer_nodes_count_},
          {"optimal_result_replaced", s.optimal_result_replaced_},
-         {"lb_price_accuracy", s.lb_price_accuracy_}}};
+         {"lb_price_accuracy", s.lb_price_accuracy_},
+         {"lb_price_accuracy_raw", s.lb_price_accuracy_raw_}}};
   }
 };
 
