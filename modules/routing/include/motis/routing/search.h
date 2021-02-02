@@ -205,17 +205,6 @@ struct search {
         (stats.labels_dominated_by_results_ * 10000.0) /
         (stats.labels_created_);
 
-    if (q.extended_lb_stats_) {
-      auto lb_stats = lbs.get_stats();
-
-      stats.average_lb_travel_time_ =
-          static_cast<uint64_t>(std::round(lb_stats.avg_travel_time));
-      stats.average_lb_transfers_ =
-          static_cast<uint64_t>(std::round(100 * lb_stats.avg_transfer_amount));
-
-      stats.lb_invalid_time_nodes_count_ = lb_stats.invalid_time_count;
-      stats.lb_invalid_transfer_nodes_count_ = lb_stats.invalid_transfer_count;
-    }
 
     auto filtered = pd.get_results();
     filtered.erase(std::remove_if(begin(filtered), end(filtered),
@@ -225,9 +214,12 @@ struct search {
                                   }),
                    end(filtered));
 
-    std::pair<double, double> evaluation = eval_price_lb(filtered);
-    stats.lb_price_accuracy_ = evaluation.first * 100 * 100;
-    stats.lb_price_accuracy_raw_ = evaluation.second * 100 * 100;
+    lower_bounds_evaluation_result evaluation = evaluate_lower_bounds(filtered);
+    stats.lb_price_accuracy_ = evaluation.price_wage_evaluation * 100 * 100;
+    stats.lb_price_accuracy_raw_ = evaluation.price_evaluation_ * 100 * 100;
+    stats.lb_travel_time_accuracy_ =
+        evaluation.travel_time_evaluation * 100 * 100;
+    stats.lb_transfers_accuracy_ = evaluation.transfers_evaluation * 100 * 100;
 
     return search_result(stats,
                          utl::to_vec(filtered,

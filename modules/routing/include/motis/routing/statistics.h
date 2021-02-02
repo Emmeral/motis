@@ -50,14 +50,8 @@ struct statistics {
   // how often a optimal result is dominated an replaced (by an equivalent)
   uint64_t optimal_result_replaced_{};
 
-  uint64_t average_lb_travel_time_{};
-  /**
-   * The average transfer lower bounds for all nodes.
-   * The average shall be multiplied by 100  before setting to have more
-   * precision as the statistics do not support floating point values
-   */
-  uint64_t average_lb_transfers_{};
-
+  uint64_t lb_transfers_accuracy_{};
+  uint64_t lb_travel_time_accuracy_{};
   // how accurate predecessors of result are with lower bounds price (in percent
   // * 100 for better accuracy)
   uint64_t lb_price_accuracy_{};
@@ -120,13 +114,9 @@ struct statistics {
     add_entry("optimality_lb", s.optimality_lb_);
     add_entry("total_lb", s.total_lb);
     add_entry("interval_extensions", s.interval_extensions_);
-
-    add_entry("average_lb_travel_time", s.average_lb_travel_time_);
-    add_entry("average_lb_transfers", s.average_lb_transfers_);
-    add_entry("lb_invalid_time_nodes_count", s.lb_invalid_time_nodes_count_);
-    add_entry("lb_invalid_transfer_nodes_count",
-              s.lb_invalid_transfer_nodes_count_);
     add_entry("optimal_result_replaced", s.optimal_result_replaced_);
+    add_entry("lb_travel_time_accuracy", s.lb_travel_time_accuracy_);
+    add_entry("lb_transfers_accuracy", s.lb_transfers_accuracy_);
     add_entry("lb_price_accuracy", s.lb_price_accuracy_);
     add_entry("lb_price_accuracy_raw", s.lb_price_accuracy_raw_);
 
@@ -179,12 +169,9 @@ struct statistics {
          {"optimality_lb", s.optimality_lb_},
          {"total_lb", s.total_lb},
          {"interval_extensions", s.interval_extensions_},
-         {"average_lb_travel_time", s.average_lb_travel_time_},
-         {"average_lb_transfers", s.average_lb_transfers_},
-         {"lb_invalid_time_nodes_count", s.lb_invalid_time_nodes_count_},
-         {"lb_invalid_transfer_nodes_count",
-          s.lb_invalid_transfer_nodes_count_},
          {"optimal_result_replaced", s.optimal_result_replaced_},
+         {"lb_travel_time_accuracy", s.lb_travel_time_accuracy_},
+         {"lb_transfers_accuracy", s.lb_transfers_accuracy_},
          {"lb_price_accuracy", s.lb_price_accuracy_},
          {"lb_price_accuracy_raw", s.lb_price_accuracy_raw_}}};
   }
