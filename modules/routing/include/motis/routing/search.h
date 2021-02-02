@@ -1,6 +1,7 @@
 #pragma once
 
 #include <motis/routing/lower_bounds/lower_bounds_factory.h>
+#include <motis/routing/lower_bounds/evaluator.h>
 #include "motis/csa/build_csa_timetable.h"
 #include "motis/routing/lower_bounds/implementations/lower_bounds_none.h"
 #include "motis/routing/search_query.h"
@@ -223,6 +224,8 @@ struct search {
                                         l, interval_begin, interval_end);
                                   }),
                    end(filtered));
+
+    stats.lb_price_accuracy_ = eval_price_lb(filtered) * 100 * 100;
 
     return search_result(stats,
                          utl::to_vec(filtered,
