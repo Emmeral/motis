@@ -22,6 +22,8 @@ struct statistics {
   // percent of labels created which are dominated by result (*10 for more precision)
   uint64_t labels_dominated_by_results_perc_{};
   uint64_t total_result_comparisons_{};
+  uint64_t result_comparison_time_ns_{};
+
   uint64_t labels_filtered_{};
   uint64_t labels_dominated_by_former_labels_{};
   uint64_t labels_dominated_by_later_labels_{};
@@ -80,6 +82,7 @@ struct statistics {
               s.labels_dominated_by_later_labels_);
     add_entry("labels_dominated_by_results", s.labels_dominated_by_results_);
     add_entry("labels_dominated_by_results_perc", s.labels_dominated_by_results_perc_);
+    add_entry("result_comparison_time_ns", s.result_comparison_time_ns_);
     add_entry("total_result_comparisons", s.total_result_comparisons_);
     add_entry("labels_equals_popped", s.labels_equals_popped_);
     add_entry("labels_optimals_popped", s.labels_optimals_popped_);
@@ -135,6 +138,7 @@ struct statistics {
           s.labels_dominated_by_later_labels_},
          {"labels_dominated_by_results", s.labels_dominated_by_results_},
          {"labels_dominated_by_results_perc", s.labels_dominated_by_results_perc_},
+         {"result_comparison_time_ns", s.result_comparison_time_ns_},
          {"total_result_comparisons", s.total_result_comparisons_},
          {"labels_equals_popped", s.labels_equals_popped_},
          {"labels_optimals_popped", s.labels_optimals_popped_},

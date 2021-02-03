@@ -16,6 +16,8 @@ namespace motis::routing {
 
 const bool FORWARDING = true;
 
+constexpr bool MEASURE_RESULT_COMP_TIME = false;
+
 template <search_dir Dir, typename Label, typename LowerBounds>
 struct pareto_dijkstra {
   struct compare_labels {
@@ -346,7 +348,17 @@ private:
   }
 
   bool feasible_considering_results(Label* label) {
-    return label->may_be_in_result_set(results_, optimal_results_, stats_.total_result_comparisons_);
+
+    bool result;
+    if constexpr (MEASURE_RESULT_COMP_TIME){
+      MOTIS_START_TIMING(comp_time);
+      result = label->may_be_in_result_set(results_, optimal_results_, stats_.total_result_comparisons_);
+      MOTIS_STOP_TIMING(comp_time);
+      stats_.result_comparison_time_ns_ += MOTIS_TIMING_NS(comp_time);
+    }else{
+      result = label->may_be_in_result_set(results_, optimal_results_, stats_.total_result_comparisons_);
+    }
+    return result;
   }
 
   void filter_results() {
